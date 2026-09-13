@@ -3,7 +3,6 @@ import React from 'react'
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
 
 // Checkbox component for form
@@ -16,7 +15,7 @@ const Checkbox = ({ isChecked, label, checkHandler, index }: { isChecked: any, l
                 value={isChecked}
                 onChange={checkHandler}
             />
-            <label htmlFor="checkbox">{label}</label>
+            <label htmlFor={`checkbox=${index}`}>{label}</label>
         </div>
     );
 };
@@ -40,7 +39,7 @@ const item_categories = [
 
 // Item conditions
 const new_condition = {
-    field: "new", // 'field' is what gets saved to the database in the item_condition field
+    field: "new",
     desc: "New - Never worn",
 }
 const used_excellent = {
@@ -60,58 +59,48 @@ const used_fair = {
 // This page is for user input for creating a post for a clothing item
 // Saves post information to database
 function UploadPost() {
-    // db info needed to store
-    const [closet_id, setClosetID] = useState('');
+    const [closet_id] = useState('');
     const [title, setTitle] = useState('');
     const [item_picture, setPicturePath] = useState('');
     const [description, setDescription] = useState('');
-    const [date_posted, setDate] = useState(getFormattedDate());
+    const [date_posted] = useState(getFormattedDate());
     const [item_condition, setCondition] = useState('');
     const [categoriesBox, setCategoryCheckbox] = useState(item_categories);
 
 
-    const router = useRouter(); // for page redirect
-    const { user, error, isLoading } = useUser(); // get this user
+    const router = useRouter();
+    const { user } = useUser();
 
 
-    // Ensure user is logged in
     if (!user) {
-        return;
+        return null;
     }
 
 
-    // Format date yyyy-mm-dd
     function getFormattedDate() {
         const date = new Date();
         const month = date.getMonth() + 1;
         const day = date.getDate();
         const yr = date.getFullYear();
-        const formattedDate = `${yr}-${month}-${day}`
-        return formattedDate;
+        return `${yr}-${month}-${day}`;
     }
 
 
-    // Handler for checkbox
     const onHandleChangeCheckbox = (index: any) => {
-        console.log({ index });
         setCategoryCheckbox(
             categoriesBox.map((cat, currentIx) => {
                 return currentIx === index
                     ? { ...cat, checked: !cat.checked }
                     : cat;
             }));
-
-        console.log(categoriesBox);
     };
 
 
-    // Submitting the form saves the information to the database through POST
     const handleSubmit = async (e: { preventDefault: () => void; }) => {
         e.preventDefault();
 
-        // Information to be stored
         const postInfo = {
-            closet_id: 0, // TODO: update to a selected closet id?
+            closet_id: 0,
             owner_id: user.email,
             title,
             likes: 0,
@@ -119,10 +108,9 @@ function UploadPost() {
             description,
             date_posted,
             item_condition,
-            categoriesBox // array of json objects for each category, tracks which are checked and the category db value to associate with the post
+            categoriesBox
         };
 
-        // Send data through POST
         const response = await fetch('http://localhost:8800/api/profile/upload-item', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -131,7 +119,6 @@ function UploadPost() {
 
         const result = await response.json();
 
-        // Redirect to profile page when user submits form
         if (response.ok) {
             console.log('Post saved:', result);
             router.push("/profile");
@@ -151,7 +138,7 @@ function UploadPost() {
                     onChange={(e) => setTitle(e.target.value)}
                 />
 
-                <br></br>
+                <br />
 
                 <input
                     type="text"
@@ -160,9 +147,9 @@ function UploadPost() {
                     onChange={(e) => setPicturePath(e.target.value)}
                 />
 
-                <img src={item_picture != '' ? item_picture : undefined} />
+                <img src={item_picture !== '' ? item_picture : undefined} alt={title ? `${title} preview` : 'Item preview'} />
 
-                <br></br>
+                <br />
 
                 <input
                     type="text"
@@ -171,7 +158,7 @@ function UploadPost() {
                     onChange={(e) => setDescription(e.target.value)}
                 />
 
-                <br></br>
+                <br />
 
                 <select id="conditionDropdown" value={item_condition} onChange={(e) => setCondition(e.target.value)}>
                     <option value="">Select Item Condition</option>
@@ -180,23 +167,23 @@ function UploadPost() {
                     <option value={used_good.field}>{used_good.desc}</option>
                     <option value={used_fair.field}>{used_fair.desc}</option>
                 </select>
-                {/* <p>You selected: {item_condition}</p> */}
 
-                <br></br>
+                <br />
 
                 <div>
                     <p>Select Item Categories:</p>
-                    {categoriesBox.map((cat, index) => {
-                        return <Checkbox
+                    {categoriesBox.map((cat, index) => (
+                        <Checkbox
+                            key={cat.label}
                             isChecked={cat.checked}
                             label={cat.label}
-                            checkHandler={() => onHandleChangeCheckbox(index)} // tracks which categories are checked (is sent to backend)
+                            checkHandler={() => onHandleChangeCheckbox(index)}
                             index={index}
                         />
-                    })}
+                    ))}
                 </div>
 
-                <br></br>
+                <br />
 
                 <button type="submit">Upload Item</button>
             </form>

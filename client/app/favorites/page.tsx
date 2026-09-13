@@ -16,7 +16,7 @@ import {
     typesMap,
     colorsMap,
     dbConditionVals
-} from '../explore/page';
+} from '../explore/ExplorePage';
 
 
 /* ============================================

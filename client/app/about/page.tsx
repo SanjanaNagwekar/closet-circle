@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Header, Footer } from '../explore/page';
+import { Header, Footer } from '../explore/ExplorePage';
 
 /* ============================================
    BRAND COLORS

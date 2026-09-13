@@ -8,7 +8,7 @@ import {
     Footer,
     ProductCard,
     Product,
-} from '../../explore/page';
+} from '../../explore/ExplorePage';
 
 /* ============================================
    BRAND COLORS

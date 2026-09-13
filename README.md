@@ -62,7 +62,7 @@ The application uses a relational SQLite database to model users, listings, tran
 
 Make sure the following are installed:
 
-- Node.js
+- Node.js 20 or later
 - npm
 
 ### 1. Clone the Repository
@@ -72,11 +72,76 @@ git clone https://github.com/SanjanaNagwekar/closet-circle.git
 cd closet-circle
 ```
 
-### 2. Install and Start the Frontend
+### 2. Configure Auth0
+
+Create a local environment file for the Next.js client:
+
+```bash
+cp client/.env.example client/.env.local
+```
+
+Fill in the Auth0 values in `client/.env.local`:
+
+```text
+AUTH0_DOMAIN=your-tenant.us.auth0.com
+AUTH0_CLIENT_ID=
+AUTH0_CLIENT_SECRET=
+AUTH0_SECRET=
+APP_BASE_URL=http://localhost:3000
+```
+
+Generate a fresh session secret with:
+
+```bash
+openssl rand -hex 32
+```
+
+Use that value for `AUTH0_SECRET`. Do not commit `.env.local` or any real credentials.
+
+For the local Auth0 application, configure:
+
+```text
+Allowed Callback URL: http://localhost:3000/api/auth/callback
+Allowed Logout URL:   http://localhost:3000
+```
+
+The project uses Auth0's Next.js v4 middleware while preserving the existing `/api/auth/*` login, logout, and callback URLs.
+
+### 3. Install and Start the Backend
+
+In one terminal:
+
+```bash
+cd server
+npm ci
+npm start
+```
+
+The backend API runs at:
+
+```text
+http://localhost:8800
+```
+
+For local development with automatic restarts, use:
+
+```bash
+npm run dev
+```
+
+The backend also supports optional environment overrides:
+
+```bash
+PORT=8800 CLIENT_ORIGIN=http://localhost:3000 npm start
+```
+
+### 4. Install and Start the Frontend
+
+In a separate terminal:
 
 ```bash
 cd client
-npm install
+npm ci
 npm run dev
 ```
 
@@ -86,21 +151,27 @@ The frontend runs at:
 http://localhost:3000
 ```
 
-### 3. Install and Start the Backend
+## Verification
 
-In a separate terminal:
+### Backend tests
+
+From the `server` directory:
 
 ```bash
-cd server
-npm install
-npm start
+npm test
 ```
 
-The backend API runs at:
+The smoke tests verify that the server starts, the health endpoint responds, trending posts include lister metadata, and the item-upload route binds the rental end date correctly.
 
-```text
-http://localhost:8800
+### Frontend production build
+
+From the `client` directory:
+
+```bash
+npm run build
 ```
+
+Running the production build is the quickest way to catch TypeScript, Next.js, authentication-integration, or bundling issues before deployment.
 
 ## Project Documentation
 

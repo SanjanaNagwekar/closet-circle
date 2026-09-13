@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Header, Footer } from '../../explore/page';
+import { Header, Footer } from '../../explore/ExplorePage';
 import { useUser } from '@auth0/nextjs-auth0/client';
 
 const brandNavy = '#284472';
