@@ -6,16 +6,21 @@ import {
   useUser as useSdkUser,
   withPageAuthRequired,
 } from '@auth0/nextjs-auth0';
+import { installDemoFetch } from './demo-fetch';
 
 const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
+if (isDemoMode) {
+  installDemoFetch();
+}
+
 const demoUser = {
   sub: 'demo|closet-circle',
-  name: 'Demo User',
-  nickname: 'demo-user',
-  email: 'demo@closetcircle.app',
+  name: 'John Smith',
+  nickname: 'john-smith',
+  email: 'user1@email.com',
   picture:
-    'https://ui-avatars.com/api/?name=Demo+User&size=128&background=284472&color=ffffff',
+    'https://ui-avatars.com/api/?name=John+Smith&size=128&background=284472&color=ffffff',
 };
 
 type UserState = {
