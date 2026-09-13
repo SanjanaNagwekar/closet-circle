@@ -91,7 +91,7 @@ app.get('/api/posts/trending', (req, res) => {
                             }
 
                             if (user) {
-                                port.lister = {
+                                post.lister = {
                                     display: `${user.first_name} ${user.last_name.charAt(0)}.`,
                                     username: post.owner_id,
                                     avatarUrl: null,
