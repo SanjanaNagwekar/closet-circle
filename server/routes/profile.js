@@ -328,7 +328,7 @@ module.exports = (db) => {
 
         db.run(
             query,
-            [closet_id, owner_id, title, likes, description, date_posted, item_condition, size, price, for_rent, for_sale],
+            [closet_id, owner_id, title, likes, description, date_posted, item_condition, size, price, for_rent, for_sale, rental_date],
             function (err) {
                 if (err) {
                     console.log("error inserting inital post");
