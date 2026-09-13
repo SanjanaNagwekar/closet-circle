@@ -1,8 +1,12 @@
 import type { NextRequest } from 'next/server';
-
-import { auth0 } from './lib/auth0';
+import { NextResponse } from 'next/server';
 
 export async function middleware(request: NextRequest) {
+  if (process.env.DEMO_MODE === 'true') {
+    return NextResponse.next();
+  }
+
+  const { auth0 } = await import('./lib/auth0');
   return await auth0.middleware(request);
 }
 
