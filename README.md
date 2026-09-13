@@ -4,6 +4,13 @@ Closet Circle is a full-stack peer-to-peer clothing marketplace designed to make
 
 Users can create profiles, browse and list clothing, save favorites, manage a shopping cart, complete marketplace transactions, and view buyer and seller history.
 
+## Project Links
+
+- **Live UI Demo:** [closet-circle-self.vercel.app](https://closet-circle-self.vercel.app)
+- **Interactive Figma Prototype:** [View the Closet Circle prototype](https://www.figma.com/proto/k5AJqFEcWgS2aVGf8On20e/Closet-Circle?node-id=37-9388&starting-point-node-id=35%3A2594&t=XDBsDJr5WX6pSzP0-1)
+
+> **Demo note:** The Vercel deployment is intended as a frontend/UI demonstration. The original application uses a local Express + SQLite backend, so some data-mutating features in the hosted demo, such as cart, favorites, and transaction workflows, may be limited.
+
 ## Tech Stack
 
 ### Frontend
