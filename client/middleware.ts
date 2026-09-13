@@ -1,11 +1,11 @@
 import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
 
 export async function middleware(request: NextRequest) {
   const isVercelDeployment = request.nextUrl.hostname.endsWith('.vercel.app');
   const isDemoMode = process.env.DEMO_MODE === 'true';
 
   if (isVercelDeployment || isDemoMode) {
+    const { NextResponse } = await import('next/server');
     return NextResponse.next();
   }
 
