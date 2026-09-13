@@ -1,0 +1,182 @@
+[
+  {
+    "id": 1,
+    "title": "Gildan DryBlend T-Shirt",
+    "price": 10.99,
+    "forSale": true,
+    "forRent": false,
+    "sold": false,
+    "type": ["Tops"],
+    "audience": ["Men's"],
+    "colors": ["Black"],
+    "sizes": ["Medium"],
+    "condition": "Used – Good",
+    "description": "Made from 100% cotton, this short-sleeve black shirt features a stretchy, lightweight, and breathable fabric in a solid color design",
+    "images": ["https://img.sonofatailor.com/images/customizer/product/extra-heavy-cotton/ss/Black.jpg"],
+    "lister": {
+      "display": "John S.",
+      "username": "user1@email.com",
+      "avatarUrl": "https://ui-avatars.com/api/?name=John%20Smith&size=64&background=DDDDDD&color=000"
+    }
+  },
+  {
+    "id": 2,
+    "title": "Nike Dunk High Shoes",
+    "price": 79.99,
+    "forSale": true,
+    "forRent": false,
+    "sold": false,
+    "type": ["Shoes"],
+    "audience": ["Men's"],
+    "colors": ["White", "Blue"],
+    "sizes": ["X-Large"],
+    "condition": "Used – Like New",
+    "description": "Recalling the 1985 Be True to Your School Kentucky colorway, the Dunk High Kentucky released in June 2021. Built entirely with leather, the shoe’s upper appears in a mix of white and Game Royal, with perforations on the toe box providing breathability",
+    "images": ["https://static.nike.com/a/images/t_PDP_1280_v1/f_auto,q_auto:eco/cbddd67b-444b-4a7c-b458-20643ab89b1b/custom-nike-dunk-high-by-you-shoes.png"],
+    "lister": {
+      "display": "Jane D.",
+      "username": "user2@email.com",
+      "avatarUrl": "https://ui-avatars.com/api/?name=Jane%20Doe&size=64&background=DDDDDD&color=000"
+    }
+  },
+  {
+    "id": 3,
+    "title": "Valiant Oxford Brogue Shoes",
+    "price": 6.99,
+    "forSale": false,
+    "forRent": true,
+    "sold": false,
+    "type": ["Shoes"],
+    "audience": ["Men's"],
+    "colors": ["Black"],
+    "sizes": ["Small"],
+    "condition": "Used – Fair",
+    "description": "Valiant is a development on the long-standing Barker style Grant. Cut from high-quality unfinished crust leather, our collection of hand painted styles are individually painted with natural dyes to a rich and deep patina.",
+    "images": ["https://img4.dhresource.com/webp/m/260x260/f3/albu/km/g/14/db741206-a7d4-4f31-8b51-b7db6f75a53e.jpg"],
+    "lister": {
+      "display": "Mary N.",
+      "username": "user3@email.com",
+      "avatarUrl": "https://ui-avatars.com/api/?name=Mary%20Nguyen&size=64&background=DDDDDD&color=000"
+    }
+  },
+  {
+    "id": 4,
+    "title": "L.L. Bean Women’s Cargo Pants",
+    "price": 24.99,
+    "forSale": false,
+    "forRent": true,
+    "sold": false,
+    "type": ["Bottoms"],
+    "audience": ["Women's"],
+    "colors": ["Green"],
+    "sizes": ["Large"],
+    "condition": "Used – Good",
+    "description": "Inspired by the hardworking style of classic cargo pants, made from ultra durable stretch cotton that’s washed to feel like an old favorite.",
+    "images": ["https://cdni.llbean.net/is/image/wim/505026_33335_41?hei=1095&wid=950&resMode=sharp2&defaultImage=llbprod/505026_0_44"],
+    "lister": {
+      "display": "Sally L.",
+      "username": "user4@email.com",
+      "avatarUrl": "https://ui-avatars.com/api/?name=Sally%20Lopez&size=64&background=DDDDDD&color=000"
+    }
+  },
+  {
+    "id": 5,
+    "title": "Millia Hydrangea-Patterned Dress",
+    "price": 74.99,
+    "forSale": false,
+    "forRent": true,
+    "sold": false,
+    "type": ["Dresses"],
+    "audience": ["Women's"],
+    "colors": ["Blue"],
+    "sizes": ["X-Small"],
+    "condition": "Used – Like New",
+    "description": "This charming midi dress features a delicate blue hydrangea pattern on sheer organza fabric, with a flowy silhouette perfect for garden parties or special occasions.",
+    "images": ["https://itsmilla.com/cdn/shop/files/MILLA_117_1024x.jpg?v=1696266364"],
+    "lister": {
+      "display": "Joe G.",
+      "username": "user5@email.com",
+      "avatarUrl": "https://ui-avatars.com/api/?name=Joe%20Gonzalez&size=64&background=DDDDDD&color=000"
+    }
+  },
+  {
+    "id": 6,
+    "title": "Fruit of the Loom Crew Neck T-Shirt",
+    "price": 8.99,
+    "forSale": true,
+    "forRent": false,
+    "sold": false,
+    "type": ["Tops"],
+    "audience": ["Men's"],
+    "colors": ["White"],
+    "sizes": ["Medium"],
+    "condition": "Used – Good",
+    "description": "This shirt features reinforced shoulder-to-shoulder tape, double-needle stitching on the neck, sleeves, and hem, plus a high-density fabric that makes prints look sharp and clear.",
+    "images": ["https://img.sonofatailor.com/images/customizer/product/White_O_Crew_Regular_NoPocket.jpg"],
+    "lister": {
+      "display": "Richard M.",
+      "username": "user6@email.com",
+      "avatarUrl": "https://ui-avatars.com/api/?name=Richard%20Miller&size=64&background=DDDDDD&color=000"
+    }
+  },
+  {
+    "id": 7,
+    "title": "Gildan Ultra Cotton T-Shirt",
+    "price": 8.99,
+    "forSale": true,
+    "forRent": false,
+    "sold": false,
+    "type": ["Tops"],
+    "audience": ["Men's"],
+    "colors": ["Red"],
+    "sizes": ["4X-Large"],
+    "condition": "Used – Fair",
+    "description": "This classic red tee is made from 100% cotton, giving it a soft and breathable feel. It’s got a simple, no-fuss design with short sleeves and a comfortable fit that works for everyday wear.",
+    "images": ["https://i5.walmartimages.com/seo/Red-Shirt-for-Men-Gildan-2000-Men-T-Shirt-Cotton-Men-Shirt-Men-s-Trendy-Shirts-Best-Mens-Classic-Short-Sleeve-T-shirt_b41bd905-f204-4666-8b42-140387381a0b.32043a79df9d2166b1ed7b576bda9e21.jpeg"],
+    "lister": {
+      "display": "Robert T.",
+      "username": "user7@email.com",
+      "avatarUrl": "https://ui-avatars.com/api/?name=Robert%20Tan&size=64&background=DDDDDD&color=000"
+    }
+  },
+  {
+    "id": 8,
+    "title": "Paul Fredrick Slim Fit Button Up Shirt",
+    "price": 18.99,
+    "forSale": false,
+    "forRent": true,
+    "sold": false,
+    "type": ["Tops"],
+    "audience": ["Men's"],
+    "colors": ["Blue"],
+    "sizes": ["3X-Large"],
+    "condition": "Used – Good",
+    "description": "This shirt looks like a classic denim shirt but is made from soft, breathable TENCEL™, making it really comfortable to wear.",
+    "images": ["https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQVwrUty2m4obSlIzk1U-o5YFvpNdqjGqf0gw&s"],
+    "lister": {
+      "display": "John S.",
+      "username": "user1@email.com",
+      "avatarUrl": "https://ui-avatars.com/api/?name=John%20Smith&size=64&background=DDDDDD&color=000"
+    }
+  },
+  {
+    "id": 9,
+    "title": "Origo Men’s Retro Sneakers",
+    "price": 39.99,
+    "forSale": true,
+    "forRent": false,
+    "sold": false,
+    "type": ["Shoes"],
+    "audience": ["Men's"],
+    "colors": ["White"],
+    "sizes": ["Small"],
+    "condition": "Used – Like New",
+    "description": "The Retro Sneaker is a modern classic inspired by vintage styles, reimagined to fit barefoot principles. Created with panels of certified natural leather and an amber sole for contrast.",
+    "images": ["https://origoshoes.com/cdn/shop/files/ORIGO-Menretrosand-1.jpg?v=1708968977&width=900"],
+    "lister": {
+      "display": "John S.",
+      "username": "user1@email.com",
+      "avatarUrl": "https://ui-avatars.com/api/?name=John%20Smith&size=64&background=DDDDDD&color=000"
+    }
+  }
+]

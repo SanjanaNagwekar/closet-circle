@@ -625,7 +625,13 @@ const ExplorePage: React.FC = () => {
                     return prevItems;
                 })
             })
-            .catch((error) => console.log('Error fetching explore page items: ', error));
+            .catch((error) => {
+                console.log('Error fetching explore page items: ', error);
+                fetch('/explore-fallback.json')
+                    .then((response) => response.json())
+                    .then((fallbackItems: Product[]) => setExplorePageItems(fallbackItems))
+                    .catch((fallbackError) => console.error('Error loading fallback explore items: ', fallbackError));
+            });
     }, [unavailablePostIDs]);
 
     /* filter logic */
