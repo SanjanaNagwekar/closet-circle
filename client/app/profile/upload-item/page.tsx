@@ -3,6 +3,7 @@ import React from 'react'
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { apiUrl } from '@/lib/api';
 
 
 // Checkbox component for form
@@ -111,7 +112,7 @@ function UploadPost() {
             categoriesBox
         };
 
-        const response = await fetch('http://localhost:8800/api/profile/upload-item', {
+        const response = await fetch(apiUrl('/api/profile/upload-item'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(postInfo),

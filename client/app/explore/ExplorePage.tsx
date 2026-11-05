@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { clearPreviewData } from 'next/dist/server/api-utils';
+import { apiUrl } from '@/lib/api';
 
 /* ============================================
    BRAND COLORS
@@ -201,7 +202,7 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false, s
 
     const addToCart = async (product: Product, type: 'forSale' | 'forRent', user: any, setExplorePageItems: React.Dispatch<React.SetStateAction<Product[]>>) => {
         try {
-            const transactionIdResponse = await fetch(`http://localhost:8800/api/profile/cart/id?email=${user?.email}`)
+            const transactionIdResponse = await fetch(apiUrl(`/api/profile/cart/id?email=${user?.email}`))
 
             const transactionIdData = await transactionIdResponse.json();
             if (!transactionIdResponse.ok || !transactionIdData.transactionId) {
@@ -210,7 +211,7 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false, s
                 return;
             }
 
-            const response = await fetch(`http://localhost:8800/api/profile/cart/addItem`, {
+            const response = await fetch(apiUrl('/api/profile/cart/addItem'), {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -273,7 +274,7 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false, s
             {/* favourite heart */}
             <button onClick={async () => {
                         if (fav) { // Remove from wishlist
-                            const response = await fetch('http://localhost:8800/api/profile/wishlist', {
+                            const response = await fetch(apiUrl('/api/profile/wishlist'), {
                                 method: 'DELETE',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ email: userEmail, post_id: product.id }),
@@ -281,7 +282,7 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false, s
                             if (response.ok) setFav(false);
                             else alert("Failed to remove from wishlist.");
                         } else {  // Add to wishlist
-                            const response = await fetch('http://localhost:8800/api/profile/wishlist', {
+                            const response = await fetch(apiUrl('/api/profile/wishlist'), {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ name: "Favorites", email: userEmail, post_id: product.id }),
@@ -536,7 +537,7 @@ const ExplorePage: React.FC = () => {
     // Fetch wishlist items for user
     useEffect(() => {
         if (!user) return;
-        fetch(`http://localhost:8800/api/profile/wishlist?email=${user.email}`)
+        fetch(apiUrl(`/api/profile/wishlist?email=${user.email}`))
             .then(res => res.json())
             .then(data => {
                 if (Array.isArray(data.wishlist)) {
@@ -554,7 +555,7 @@ const ExplorePage: React.FC = () => {
     /* fetch unavailable items */
     useEffect(() => {
         console.log("in use effect for sold posts")
-        fetch(`http://localhost:8800/api/all-unavailable`)
+        fetch(apiUrl('/api/all-unavailable'))
                 .then((response) => response.json())
                 .then((data) => {
                     console.log('Fetched sold posts: ', data);
@@ -575,7 +576,7 @@ const ExplorePage: React.FC = () => {
     // Fetch products from backend
     useEffect(() => {
         console.log("in use effect")
-        fetch('http://localhost:8800/api/posts-all')
+        fetch(apiUrl('/api/posts-all'))
             .then((response) => {
                 console.log("Response status: ", response.status);
                 return response.json();

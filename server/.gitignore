@@ -4,6 +4,9 @@
 # testing
 /coverage
 
+# runtime database files
+/data
+
 # production
 /build
 

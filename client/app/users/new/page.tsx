@@ -4,6 +4,7 @@ import { useUser } from '@auth0/nextjs-auth0/client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { apiUrl } from '@/lib/api';
 
 const brandNavy = '#284472';
 const brandLightPink = "#fdf5f3";
@@ -45,7 +46,7 @@ function NewUsersPage() {
     const newUserData = {email: user.email, first_name, last_name, bio};
 
     // send data through POST
-    const response = await fetch('http://localhost:8800/api/users/new', {
+    const response = await fetch(apiUrl('/api/users/new'), {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(newUserData),

@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Header, Footer } from '../../explore/ExplorePage';
 import { useUser } from '@auth0/nextjs-auth0/client';
+import { apiUrl } from '@/lib/api';
 
 const brandNavy = '#284472';
 const brandBrown = '#675a5e';
@@ -32,8 +33,7 @@ const OrderHistoryPage: React.FC = () => {
     /* Fetch all ordered items */
     useEffect(() => {
         if (!user) return;
-        fetch(`http://localhost:8800/api/profile/order-history/purchased?email=${user.email}`)
-            // fetch(`http://localhost:8800/api/profile/order-history/purchased?email=user2@email.com`) // for testing purposes
+        fetch(apiUrl(`/api/profile/order-history/purchased?email=${user.email}`))
             .then((response) => response.json())
             .then((data) => {
                 console.log('Fetched posts: ', data);

@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "db:migrate": "node scripts/migrate-database.js",
+    "db:seed": "node scripts/seed-database.js",
+    "db:setup": "node scripts/setup-database.js",
+    "db:reset": "node scripts/reset-database.js && node scripts/setup-database.js",
     "test": "node --test test/*.test.js",
     "start": "node index.js",
     "dev": "nodemon index.js"

@@ -1,12 +1,25 @@
 const express = require("express");
 const cors = require("cors");
-const path = require("path");
-const sqlite3 = require('sqlite3').verbose();
+const {
+    checkDatabase,
+    closeDatabase,
+    initializeDatabase,
+    openDatabase,
+    resolveDatabasePath,
+} = require('./database');
 
 const port = Number(process.env.PORT) || 8800;
-const clientOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:3000';
+const host = process.env.HOST || '127.0.0.1';
+const clientOrigins = new Set(
+    (process.env.CLIENT_ORIGINS || process.env.CLIENT_ORIGIN || 'http://localhost:3000')
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean),
+);
+const databasePath = resolveDatabasePath();
 
 const app = express();
+app.disable('x-powered-by');
 
 var profileRouter = require("./routes/profile");
 
@@ -14,18 +27,33 @@ app.use(express.json());
 
 // cors enables communication from front end to back end
 app.use(cors({
-    origin: clientOrigin,
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    origin(origin, callback) {
+        if (!origin || clientOrigins.has(origin)) {
+            callback(null, true);
+            return;
+        }
+        callback(new Error(`Origin is not allowed by CORS: ${origin}`));
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
 }));
 
-const databasePath = path.join(__dirname, 'databases', 'closet_circle_database.db');
-const db = new sqlite3.Database(databasePath, sqlite3.OPEN_READWRITE, (err) => {
-    if (err) return console.error(err.message);
-    console.log('Connected to the SQLite database.');
-})
+const db = openDatabase(databasePath);
 
 app.use("/api/profile", profileRouter(db));
+
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', service: 'closet-circle-api' });
+});
+
+app.get('/ready', async (req, res) => {
+    try {
+        const ready = await checkDatabase(db);
+        res.status(ready ? 200 : 503).json({ status: ready ? 'ready' : 'not-ready' });
+    } catch (error) {
+        res.status(503).json({ status: 'not-ready', error: error.message });
+    }
+});
 
 // Default endpoint
 app.get('/', (req, res) => {
@@ -339,6 +367,46 @@ app.get('/api/profile', (req, res) => {
 });
 
 
-app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
-})
+let server;
+
+async function startServer() {
+    const seedOnStart = process.env.SEED_DATABASE_ON_START === 'true';
+    await initializeDatabase(db, { seed: seedOnStart });
+
+    return new Promise((resolve, reject) => {
+        server = app.listen(port, host, () => {
+            console.log(`Server is running on http://${host}:${port}`);
+            console.log(`Database: ${databasePath}`);
+            resolve(server);
+        });
+        server.once('error', reject);
+    });
+}
+
+async function shutdown(signal) {
+    console.log(`Received ${signal}; shutting down`);
+    if (server) {
+        await new Promise((resolve) => server.close(resolve));
+    }
+    await closeDatabase(db);
+}
+
+if (require.main === module) {
+    startServer().catch((error) => {
+        console.error('Failed to start server:', error);
+        process.exitCode = 1;
+    });
+
+    for (const signal of ['SIGINT', 'SIGTERM']) {
+        process.once(signal, () => {
+            shutdown(signal)
+                .then(() => process.exit(0))
+                .catch((error) => {
+                    console.error('Failed to shut down cleanly:', error);
+                    process.exit(1);
+                });
+        });
+    }
+}
+
+module.exports = { app, startServer };

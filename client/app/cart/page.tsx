@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useUser, withPageAuthRequired } from '@auth0/nextjs-auth0/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { apiUrl } from '@/lib/api';
 
 /* ============================================
    BRAND COLORS
@@ -153,7 +154,7 @@ const CartPage: React.FC = () => {
     // Handle item removal
     const handleRemoveItem = async (id: number) => {
         try {
-            const response = await fetch("http://localhost:8800/api/profile/cart/item", {
+            const response = await fetch(apiUrl('/api/profile/cart/item'), {
                 method: "DELETE",
                 headers: {
                     "Content-Type": "application/json",
@@ -180,7 +181,7 @@ const CartPage: React.FC = () => {
     const handleCheckout = async () => {
         try {
             // fetch pending transaction id
-            const transactionIdResponse = await fetch(`http://localhost:8800/api/profile/cart/id?email=${user?.email}`)
+            const transactionIdResponse = await fetch(apiUrl(`/api/profile/cart/id?email=${user?.email}`))
 
             const transactionIdData = await transactionIdResponse.json();
             if (!transactionIdResponse.ok || !transactionIdData.transactionId) {
@@ -193,7 +194,7 @@ const CartPage: React.FC = () => {
             setCartTransactionId(transactionIdData.transactionId);
 
             // finish current transaction
-            const checkoutResponse = await fetch(`http://localhost:8800/api/profile/checkout?transactionId=${transactionIdData.transactionId}`, {
+            const checkoutResponse = await fetch(apiUrl(`/api/profile/checkout?transactionId=${transactionIdData.transactionId}`), {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -219,8 +220,7 @@ const CartPage: React.FC = () => {
     useEffect(() => {
         if (!user) return;
         
-        fetch(`http://localhost:8800/api/profile/cart?email=${user.email}`)
-        // fetch(`http://localhost:8800/api/profile/cart?email=user1@email.com`)
+        fetch(apiUrl(`/api/profile/cart?email=${user.email}`))
             .then((response) => response.json())
             .then((data) => {
                 console.log('Fetched posts: ', data);

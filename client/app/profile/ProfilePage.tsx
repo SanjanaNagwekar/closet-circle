@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useUser, withPageAuthRequired } from '@auth0/nextjs-auth0/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { apiUrl } from '@/lib/api';
 
 /* ============================================
    BRAND COLORS
@@ -883,7 +884,7 @@ const ProfilePage: React.FC = () => {
             console.log("here: email - " + user.email);
 
             // Get specific user information from db - O.C.
-            fetch(`http://localhost:8800/api/profile?email=${user.email}`)
+            fetch(apiUrl(`/api/profile?email=${user.email}`))
             .then(response => response.json())
             .then(data => {
                 // I added code in auth0 that stores first_login claim - O.C.
@@ -906,7 +907,7 @@ const ProfilePage: React.FC = () => {
     /* fetch unavailable items */
     useEffect(() => {
         if (!user) return;
-        fetch(`http://localhost:8800/api/profile/seller-history?email=${user.email}`)
+        fetch(apiUrl(`/api/profile/seller-history?email=${user.email}`))
                 .then((response) => response.json())
                 .then((data) => {
                     console.log('Fetched sold posts: ', data);
@@ -925,7 +926,7 @@ const ProfilePage: React.FC = () => {
     /* fetch user’s closet */
     useEffect(() => {
         if (!user) return;
-        fetch(`http://localhost:8800/api/profile/posts?ownerID=${user.email}`)
+        fetch(apiUrl(`/api/profile/posts?ownerID=${user.email}`))
             .then((r) => r.json())
             .then((data) => {
                 console.log(data);
@@ -955,7 +956,7 @@ const ProfilePage: React.FC = () => {
     /* fetch user friend list */
     useEffect(() => {
         if(!user) return;
-        fetch(`http://localhost:8800/api/profile/friends?email=${user.email}`)
+        fetch(apiUrl(`/api/profile/friends?email=${user.email}`))
             .then((r) => r.json())
             .then((data) => {
                 setFriends(data.friends);
@@ -965,7 +966,7 @@ const ProfilePage: React.FC = () => {
     /* fetch user followers list */
     useEffect(() => {
         if(!user) return;
-        fetch(`http://localhost:8800/api/profile/followers?email=${user.email}`)
+        fetch(apiUrl(`/api/profile/followers?email=${user.email}`))
             .then((r) => r.json())
             .then((data) => {
                 setFollowers(data.followers);
@@ -1321,7 +1322,7 @@ const ProfilePage: React.FC = () => {
                                 };
 
                                 // 1) send to backend
-                                fetch('http://localhost:8800/api/profile/upload-item', {
+                                fetch(apiUrl('/api/profile/upload-item'), {
                                     method : 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body   : JSON.stringify(postInfoDB),
@@ -1342,7 +1343,7 @@ const ProfilePage: React.FC = () => {
                             onConfirm={() => {
                                 if (itemToDelete !== null) {
                                     // Send delete request to the backend
-                                    fetch('http://localhost:8800/api/profile/delete-item', {
+                                    fetch(apiUrl('/api/profile/delete-item'), {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({ post_id: itemToDelete }),

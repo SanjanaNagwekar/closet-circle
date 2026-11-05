@@ -75,7 +75,7 @@ The application uses a relational SQLite database to model users, listings, tran
 
 Make sure the following are installed:
 
-- Node.js 20 or later
+- Node.js 22
 - npm
 
 ### 1. Clone the Repository
@@ -101,6 +101,7 @@ AUTH0_CLIENT_ID=
 AUTH0_CLIENT_SECRET=
 AUTH0_SECRET=
 APP_BASE_URL=http://localhost:3000
+API_BASE_URL=http://127.0.0.1:8800
 ```
 
 Generate a fresh session secret with:
@@ -120,6 +121,8 @@ Allowed Logout URL:   http://localhost:3000
 
 The project uses Auth0's Next.js v4 middleware while preserving the existing `/api/auth/*` login, logout, and callback URLs.
 
+`API_BASE_URL` is read by the Next.js server. Browser requests use the same-origin `/backend-api/*` proxy, so client components do not need deployment-specific API URLs.
+
 ### 3. Install and Start the Backend
 
 In one terminal:
@@ -127,6 +130,7 @@ In one terminal:
 ```bash
 cd server
 npm ci
+npm run db:setup
 npm start
 ```
 
@@ -145,8 +149,40 @@ npm run dev
 The backend also supports optional environment overrides:
 
 ```bash
-PORT=8800 CLIENT_ORIGIN=http://localhost:3000 npm start
+DATABASE_PATH=./data/closet-circle.db \
+CLIENT_ORIGINS=http://localhost:3000 \
+PORT=8800 \
+HOST=127.0.0.1 \
+npm start
 ```
+
+For a deployed API, place `DATABASE_PATH` on persistent storage and run a single API instance. The database uses WAL mode and a write timeout so reads can continue during normal writes. Multiple allowed origins can be supplied as a comma-separated `CLIENT_ORIGINS` value.
+
+Database commands:
+
+```bash
+npm run db:migrate  # apply pending schema migrations
+npm run db:seed     # add demo data when the database is empty
+npm run db:setup    # migrate and seed an empty database
+npm run db:reset    # rebuild the local database from scratch
+```
+
+The API exposes `/health` for process health and `/ready` for database readiness.
+
+### Container deployment
+
+The backend includes a Dockerfile for a single-instance deployment with persistent storage mounted at `/data`:
+
+```bash
+cd server
+docker build -t closet-circle-api .
+docker run --rm -p 8800:8800 \
+  -e CLIENT_ORIGINS=http://localhost:3000 \
+  -v closet-circle-data:/data \
+  closet-circle-api
+```
+
+For a hosted deployment, set `CLIENT_ORIGINS` to the frontend origin and attach persistent storage at `/data`.
 
 ### 4. Install and Start the Frontend
 

@@ -1,11 +1,15 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 
 const SERVER_DIR = path.join(__dirname, '..');
 const PORT = 18880;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
+const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'closet-circle-test-'));
+const TEST_DATABASE_PATH = path.join(TEST_DATA_DIR, 'closet-circle.db');
 
 let serverProcess;
 
@@ -18,7 +22,7 @@ async function waitForServer(timeoutMs = 10000) {
         }
 
         try {
-            const response = await fetch(`${BASE_URL}/`);
+            const response = await fetch(`${BASE_URL}/ready`);
             if (response.ok) return;
         } catch (_) {
             // The server may still be starting up. Retry until the timeout.
@@ -36,7 +40,9 @@ test.before(async () => {
         env: {
             ...process.env,
             PORT: String(PORT),
-            CLIENT_ORIGIN: 'http://localhost:3000',
+            CLIENT_ORIGINS: 'http://localhost:3000',
+            DATABASE_PATH: TEST_DATABASE_PATH,
+            SEED_DATABASE_ON_START: 'true',
         },
         stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -54,16 +60,33 @@ test.before(async () => {
     }
 });
 
-test.after(() => {
+test.after(async () => {
     if (serverProcess && serverProcess.exitCode === null) {
         serverProcess.kill('SIGTERM');
+        await new Promise((resolve) => serverProcess.once('exit', resolve));
     }
+    fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 
 test('GET / returns the backend health response', async () => {
     const response = await fetch(`${BASE_URL}/`);
     assert.equal(response.status, 200);
     assert.equal(await response.json(), 'hello this is the backend');
+});
+
+test('GET /health reports the service status', async () => {
+    const response = await fetch(`${BASE_URL}/health`);
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+        status: 'ok',
+        service: 'closet-circle-api',
+    });
+});
+
+test('GET /ready confirms database access', async () => {
+    const response = await fetch(`${BASE_URL}/ready`);
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { status: 'ready' });
 });
 
 test('GET /api/posts/trending returns posts with lister metadata', async () => {
@@ -81,7 +104,6 @@ test('GET /api/posts/trending returns posts with lister metadata', async () => {
 });
 
 test('upload-item route binds rental_date to the rental_end_date insert', () => {
-    const fs = require('node:fs');
     const profileRoute = fs.readFileSync(path.join(SERVER_DIR, 'routes', 'profile.js'), 'utf8');
 
     assert.match(

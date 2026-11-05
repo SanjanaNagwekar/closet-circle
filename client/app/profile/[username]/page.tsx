@@ -9,6 +9,7 @@ import {
     ProductCard,
     Product,
 } from '../../explore/ExplorePage';
+import { apiUrl } from '@/lib/api';
 
 /* ============================================
    BRAND COLORS
@@ -50,7 +51,7 @@ export default function ProfilePageByUsername() {
         console.log("raw param: " + rawParam);
         console.log("email: " + email);
         // Get specific user information from db - O.C.
-        fetch(`http://localhost:8800/api/profile?email=${email}`)
+        fetch(apiUrl(`/api/profile?email=${email}`))
         .then(response => response.json())
         .then(data => {
                 console.log("returned: " + data.users[0]); // 1 user should be returned (1 account per email)
@@ -72,7 +73,7 @@ export default function ProfilePageByUsername() {
 
     /* fetch unavailable items */
     useEffect(() => {
-        fetch(`http://localhost:8800/api/profile/seller-history?email=${email}`)
+        fetch(apiUrl(`/api/profile/seller-history?email=${email}`))
                 .then((response) => response.json())
                 .then((data) => {
                     console.log('Fetched sold posts: ', data);
@@ -90,7 +91,7 @@ export default function ProfilePageByUsername() {
 
     /* fetch user’s closet */
         useEffect(() => {
-            fetch(`http://localhost:8800/api/profile/posts?ownerID=${email}`)
+            fetch(apiUrl(`/api/profile/posts?ownerID=${email}`))
                 .then((r) => r.json())
                 .then((data) => {
                     console.log(data);
@@ -172,7 +173,7 @@ export default function ProfilePageByUsername() {
     /* get this profile's followers, check if logged in user is included, set Unfollow if so */
     useEffect(() => {
         if(!user) return;
-        fetch(`http://localhost:8800/api/profile/followers?email=${email}`)
+        fetch(apiUrl(`/api/profile/followers?email=${email}`))
             .then((r) => r.json())
             .then((data) => {
                 const profileFollowers = data.followers.map((f: { email: any; }) => f.email);
@@ -197,7 +198,7 @@ export default function ProfilePageByUsername() {
 
     if (followToggle == true) {
         // send data through POST
-        const response = await fetch('http://localhost:8800/api/profile/add-friend', {
+        const response = await fetch(apiUrl('/api/profile/add-friend'), {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(friendInfo),
@@ -216,7 +217,7 @@ export default function ProfilePageByUsername() {
 
     } else {
         // remove from followers
-        const response = await fetch("http://localhost:8800/api/profile/remove-friend", {
+        const response = await fetch(apiUrl('/api/profile/remove-friend'), {
             method: "DELETE",
             headers: {
                 "Content-Type": "application/json",

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, JSX } from 'react';
 import Link from 'next/link';
 import { useUser } from '@auth0/nextjs-auth0/client';
+import { apiUrl } from '@/lib/api';
 
 const brandNavy = '#284472';
 const brandLightPink = '#fdf5f3';
@@ -556,7 +557,7 @@ export default function Home() {
     }
 
     useEffect(() => {
-        fetch('http://localhost:8800/api/posts/trending')
+        fetch(apiUrl('/api/posts/trending'))
             .then((response) => {
                 console.log("Response status: ", response.status);
                 return response.json();

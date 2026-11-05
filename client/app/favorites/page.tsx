@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useUser } from '@auth0/nextjs-auth0/client';
+import { apiUrl } from '@/lib/api';
 import {
     Header,
     ProductCard,
@@ -43,7 +44,7 @@ useEffect(() => {
 
     const fetchWishlistItems = async () => {
         try {
-            const response = await fetch(`http://localhost:8800/api/profile/wishlist?email=${user.email}`);
+            const response = await fetch(apiUrl(`/api/profile/wishlist?email=${user.email}`));
             const data = await response.json();
 
             if (response.ok) {
@@ -95,7 +96,7 @@ useEffect(() => {
 const handleRemove = async (id: number) => {
     if (!user) return;
     try {
-        const response = await fetch('http://localhost:8800/api/profile/wishlist', {
+        const response = await fetch(apiUrl('/api/profile/wishlist'), {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: user.email, post_id: id }),
