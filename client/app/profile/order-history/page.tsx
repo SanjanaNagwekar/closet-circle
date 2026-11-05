@@ -17,6 +17,8 @@ interface Product {
     date      : string;
     purchased : boolean;
     borrowed  : boolean;
+    rentalStartDate?: string;
+    rentalEndDate?: string;
 }
 
 const OrderHistoryPage: React.FC = () => {
@@ -50,6 +52,8 @@ const OrderHistoryPage: React.FC = () => {
                     date: post.purchased_date.substring(0, post.purchased_date.indexOf(' ')), // date format yyy-mm-dd (doesnt display timestamp)
                     purchased: post.intent === 'purchase',
                     borrowed: post.intent === 'rental',
+                    rentalStartDate: post.rental_start_date,
+                    rentalEndDate: post.rental_end_date,
                 }));
                 const purchasedItems = transformed.filter((item) => item.purchased);
                 const borrowedItems = transformed.filter((item) => item.borrowed);
@@ -95,6 +99,11 @@ const OrderHistoryPage: React.FC = () => {
                 </h2>
                 <p className="text-sm font-medium text-gray-600">${item.price.toFixed(2)}</p>
                 <p className="text-xs text-gray-500">Ordered on: {item.date}</p>
+                {item.borrowed && item.rentalStartDate && item.rentalEndDate && (
+                    <p className="text-xs text-gray-500">
+                        Requested dates: {item.rentalStartDate}–{item.rentalEndDate}
+                    </p>
+                )}
             </div>
             {item.status && (
                 <span
@@ -127,13 +136,14 @@ const OrderHistoryPage: React.FC = () => {
                 <h1 style={{ color: brandBrown }} className="text-4xl font-medium mb-8">My Account</h1>
                 <div className="flex flex-col md:flex-row gap-8">
                     <div className="w-full md:w-1/4 border rounded-lg overflow-hidden">
-                        {['Profile', 'Order History', 'Seller History','Policies'].map((label) => (
+                        {['Profile', 'Order History', 'Seller History', 'Rental Dashboard'].map((label) => (
                             <div
                                 key={label}
                                 onClick={() => {
                                     if (label === 'Profile') location.href = '/profile';
                                     if (label === 'Order History') location.href = '/profile/order-history';
                                     if (label === 'Seller History') location.href = '/profile/seller-history';
+                                    if (label === 'Rental Dashboard') location.href = '/profile/rentals';
                                 }}
                                 className={`flex items-center p-4 cursor-pointer ${
                                     label === 'Order History' ? 'font-semibold' : 'font-normal'

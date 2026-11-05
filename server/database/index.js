@@ -128,7 +128,8 @@ async function normalizePendingCarts(db) {
     try {
         await exec(db, `
             INSERT OR IGNORE INTO Transaction_Listing (
-                transaction_id, post_id, intent, unit_price
+                transaction_id, post_id, intent, unit_price,
+                rental_start_date, rental_end_date
             )
             SELECT (
                        SELECT MIN(KeepTransaction.transaction_id)
@@ -138,7 +139,9 @@ async function normalizePendingCarts(db) {
                    ),
                    PendingListing.post_id,
                    PendingListing.intent,
-                   PendingListing.unit_price
+                   PendingListing.unit_price,
+                   PendingListing.rental_start_date,
+                   PendingListing.rental_end_date
             FROM Transaction_Listing PendingListing
             JOIN Transactions PendingTransaction USING (transaction_id)
             WHERE PendingTransaction.status = 'pending';

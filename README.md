@@ -42,6 +42,7 @@ Users can create profiles, browse and list clothing, save favorites, manage a sh
 - Favorites and wishlist management
 - Buyer-owned shopping carts with purchase and rental intent
 - Atomic checkout with availability validation and order price snapshots
+- Date-based rental requests with seller approval, conflict prevention, cancellation, and completion
 - Buyer order history
 - Seller transaction history
 - Profile management
@@ -58,7 +59,7 @@ Closet Circle follows a client-server architecture:
 
 ## My Contributions
 
-Closet Circle was developed collaboratively as a senior-year software engineering project at San José State University.
+Closet Circle originated as a collaborative team project and has since evolved into an independently maintained and expanded marketplace application.
 
 My contributions included:
 
@@ -66,6 +67,7 @@ My contributions included:
 - Contributing to user profile, marketplace, and transaction-related functionality across the full-stack application.
 - Integrating frontend features with backend REST APIs and SQLite-backed application data.
 - Debugging and refining application behavior, user flows, and overall product experience.
+- Independently extending the original application with production-oriented deployment, authentication and authorization, listing lifecycle management, image uploads, buyer-owned checkout, and date-based rental workflows.
 
 ## Database Design
 
@@ -79,7 +81,7 @@ The application uses a relational SQLite database to model users, listings, tran
 
 Make sure the following are installed:
 
-- Node.js 22
+- Node.js 22.13 or later
 - npm
 
 ### 1. Clone the Repository
@@ -240,7 +242,7 @@ From the `server` directory:
 npm test
 ```
 
-The tests verify server startup and health, public marketplace visibility, authentication and ownership boundaries, listing drafts and publishing, image validation, listing updates, cart isolation, checkout behavior, archiving, deletion, and removal of legacy mutation endpoints.
+The tests verify server startup and health, public marketplace visibility, authentication and ownership boundaries, listing drafts and publishing, image validation, listing updates, cart isolation, checkout behavior, rental approvals and date conflicts, archiving, deletion, and removal of legacy mutation endpoints.
 
 ### Frontend production build
 
@@ -256,7 +258,7 @@ Running the production build is the quickest way to catch TypeScript, Next.js, a
 
 Additional design and architecture documentation is available in the [`documentation`](documentation/) directory, including:
 
-- Final project presentation
+- Original project presentation
 - Block architecture
 - Layer architecture
 - Class diagram
@@ -265,6 +267,6 @@ Additional design and architecture documentation is available in the [`documenta
 
 Database schema files and the ER diagram are available in [`server/databases`](server/databases/).
 
-## Team Project
+## Project Evolution
 
-Closet Circle was developed collaboratively as part of San José State University's CS 160 Software Engineering course.
+The application began as a collaborative team project. The current version is independently maintained and extends that foundation with redesigned marketplace workflows, stronger security boundaries, persistent uploads, deployment support, automated verification, and complete buyer, seller, and rental lifecycles.

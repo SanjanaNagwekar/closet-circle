@@ -214,6 +214,14 @@ const Header: React.FC = () => {
                                 >
                                     View Profile
                                 </Link>
+                                <Link
+                                    href="/profile/rentals"
+                                    className="block px-4 py-2 hover:bg-gray-100"
+                                    style={{ color: brandNavy }}
+                                    onClick={() => setOpen(false)}
+                                >
+                                    Rental Dashboard
+                                </Link>
                                 <a
                                     href="/api/auth/logout"
                                     className="block px-4 py-2 hover:bg-gray-100"
@@ -871,6 +879,11 @@ const ProfilePage: React.FC = () => {
                             label="Seller History"
                             active={false}
                             onClick={() => router.push('/profile/seller-history')}
+                        />
+                        <SidebarItem
+                            label="Rental Dashboard"
+                            active={false}
+                            onClick={() => router.push('/profile/rentals')}
                         />
                     </div>
 

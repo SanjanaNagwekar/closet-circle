@@ -300,24 +300,42 @@ test('checkout completes only the current user cart and opens a fresh cart', asy
 test('rental intent is preserved without archiving the listing', async () => {
     const addResponse = await request('/api/profile/cart/items', 'alice@example.com', {
         method: 'POST',
-        body: JSON.stringify({ postId: rentalPostId, intent: 'rental' }),
+        body: JSON.stringify({
+            postId: rentalPostId,
+            intent: 'rental',
+            startDate: '2099-06-01',
+            endDate: '2099-06-03',
+        }),
     });
     assert.equal(addResponse.status, 201);
 
     const cartResponse = await request('/api/profile/cart', 'alice@example.com');
     const cart = await cartResponse.json();
     assert.equal(cart.cart[0].intent, 'rental');
+    assert.equal(cart.cart[0].rental_start_date, '2099-06-01');
+    assert.equal(cart.cart[0].rental_end_date, '2099-06-03');
 
     const checkoutResponse = await request('/api/profile/cart/checkout', 'alice@example.com', {
         method: 'POST',
     });
     assert.equal(checkoutResponse.status, 200);
+    assert.equal((await checkoutResponse.json()).message, 'Rental request submitted');
 
     const listing = await get(
         `SELECT listing_status FROM Post WHERE post_id = ?`,
         [rentalPostId],
     );
     assert.equal(listing.listing_status, 'published');
+
+    const rentalRequest = await get(
+        `SELECT status, start_date, end_date
+         FROM Rental_Request
+         WHERE renter_email = ? AND post_id = ?`,
+        ['alice@example.com', rentalPostId],
+    );
+    assert.equal(rentalRequest.status, 'pending');
+    assert.equal(rentalRequest.start_date, '2099-06-01');
+    assert.equal(rentalRequest.end_date, '2099-06-03');
 });
 
 test('the authorization fixture created separate pending transactions', () => {

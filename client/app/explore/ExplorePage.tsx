@@ -4,16 +4,14 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@auth0/nextjs-auth0/client';
-import { clearPreviewData } from 'next/dist/server/api-utils';
 import { apiUrl } from '@/lib/api';
+import RentalDateModal from './RentalDateModal';
 
 /* ============================================
    BRAND COLORS
 ============================================ */
 const brandNavy = '#284472';
 const brandLightPink = "#fdf5f3";
-const brandPink = "#FDEEEA";
-const brandLightBrown = "#efe4e1";
 const brandBrown = "#675a5e";
 
 /* -------------------------------------------
@@ -156,6 +154,12 @@ const Header: React.FC = () => {
                                       onClick={()=>setMenuOpen(false)}>
                                     View Profile
                                 </Link>
+                                <Link href="/profile/rentals"
+                                      className="block px-4 py-2 hover:bg-gray-100"
+                                      style={{ color: brandNavy }}
+                                      onClick={()=>setMenuOpen(false)}>
+                                    Rental Dashboard
+                                </Link>
                                 <a href="/api/auth/logout"
                                    className="block px-4 py-2 hover:bg-gray-100"
                                    style={{ color: brandNavy }}>
@@ -187,6 +191,7 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) 
     const [i,   setI]     = useState(0);
     const [isAdding, setIsAdding] = useState(false);
     const [isUpdatingFavorite, setIsUpdatingFavorite] = useState(false);
+    const [rentalModalOpen, setRentalModalOpen] = useState(false);
     const [feedback, setFeedback] = useState('');
     const ref= useRef<HTMLDivElement|null>(null);
 
@@ -194,10 +199,14 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) 
         setFav(initialFav);
     }, [initialFav]);
 
-    const handleAction = async (type: 'forSale' | 'forRent') => {
+    const addToCart = async (
+        intent: 'purchase' | 'rental',
+        startDate?: string,
+        endDate?: string,
+    ) => {
         if (!user) {
             router.push('/api/auth/login');
-            return;
+            return false;
         }
 
         setIsAdding(true);
@@ -210,13 +219,17 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) 
                 },
                 body: JSON.stringify({
                     postId: product.id,
-                    intent: type === 'forRent' ? 'rental' : 'purchase',
+                    intent,
+                    startDate,
+                    endDate,
                 }),
             });
             const data = await response.json();
             setFeedback(response.ok ? data.message : data.error || 'Could not add this item');
+            return response.ok;
         } catch (error) {
             setFeedback('Could not reach the server. Please try again.');
+            return false;
         } finally {
             setIsAdding(false);
         }
@@ -345,13 +358,19 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) 
                             {product.forSale &&
                                 <button style={{ backgroundColor: brandBrown }} className="text-white text-sm py-1 px-3 rounded-sm flex-1 disabled:opacity-60"
                                 disabled={isAdding}
-                                onClick={() => handleAction('forSale')}>
+                                onClick={() => addToCart('purchase')}>
                                     Buy for ${product.price}
                                 </button>}
                             {product.forRent &&
                                 <button style={{ color: brandBrown }} className="border border-gray-400 text-sm py-1 px-3 rounded-sm flex-1 disabled:opacity-60"
                                 disabled={isAdding}
-                                onClick={() => handleAction('forRent')}>
+                                onClick={() => {
+                                    if (!user) {
+                                        router.push('/api/auth/login');
+                                        return;
+                                    }
+                                    setRentalModalOpen(true);
+                                }}>
                                     Rent for ${product.price} Per Day
                                 </button>}
                         </>}
@@ -370,6 +389,14 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) 
                     {product.description && <p><strong>Description:</strong> {product.description}</p>}
                 </div>
             )}
+            <RentalDateModal
+                isSaving={isAdding}
+                onClose={() => setRentalModalOpen(false)}
+                onConfirm={(startDate, endDate) => addToCart('rental', startDate, endDate)}
+                open={rentalModalOpen}
+                rate={product.price}
+                title={product.title}
+            />
         </div>
     );
 };

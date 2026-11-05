@@ -28,6 +28,7 @@ app.disable('x-powered-by');
 var profileRouter = require("./routes/profile");
 const cartRouter = require('./routes/cart');
 const listingsRouter = require('./routes/listings');
+const rentalsRouter = require('./routes/rentals');
 
 app.use(express.json());
 
@@ -53,6 +54,7 @@ app.use('/api/uploads', express.static(uploadsPath, {
     maxAge: '1y',
 }));
 app.use('/api/profile/cart', cartRouter(db, apiAuth));
+app.use('/api/profile/rentals', rentalsRouter(db, apiAuth));
 app.use(
     '/api/profile/listings',
     listingsRouter(db, apiAuth, {

@@ -182,7 +182,9 @@ module.exports = (db, { requireUser }) => {
     router.get("/order-history/purchased", ...requireUser, (req, res) => {
         const email = req.currentUser.email;
         const queryTransaction = `SELECT transaction_id, purchased_date FROM Transactions WHERE email = ? AND status = 'purchased'`;
-        const queryListings = `SELECT post_id, intent, unit_price FROM Transaction_Listing WHERE transaction_id = ?`
+        const queryListings = `
+            SELECT post_id, intent, unit_price, rental_start_date, rental_end_date
+            FROM Transaction_Listing WHERE transaction_id = ?`
         const queryPosts = `SELECT title, price, sflag, bflag FROM Post WHERE post_id = ?`
         const queryPostImage = `SELECT image_url FROM Post_Image WHERE post_id = ?`
 
@@ -243,6 +245,8 @@ module.exports = (db, { requireUser }) => {
                                             post_id: item.post_id,
                                             price: item.unit_price ?? post.price,
                                             intent: item.intent,
+                                            rental_start_date: item.rental_start_date,
+                                            rental_end_date: item.rental_end_date,
                                             purchased_date: transaction.purchased_date,
                                         });
                                     });
@@ -275,7 +279,9 @@ module.exports = (db, { requireUser }) => {
     router.get("/seller-history", (req, res) => {
         const { email } = req.query;
         const queryTransaction = `SELECT transaction_id, purchased_date FROM Transactions WHERE status = 'purchased'`;
-        const queryListings = `SELECT post_id, intent, unit_price FROM Transaction_Listing WHERE transaction_id = ?`
+        const queryListings = `
+            SELECT post_id, intent, unit_price, rental_start_date, rental_end_date
+            FROM Transaction_Listing WHERE transaction_id = ?`
         const queryPosts = `SELECT title, price, sflag, bflag FROM Post WHERE post_id = ? AND owner_id = ?`
         const queryPostImage = `SELECT image_url FROM Post_Image WHERE post_id = ?`
 
@@ -334,6 +340,8 @@ module.exports = (db, { requireUser }) => {
                                             post_id: item.post_id,
                                             price: item.unit_price ?? post.price,
                                             intent: item.intent,
+                                            rental_start_date: item.rental_start_date,
+                                            rental_end_date: item.rental_end_date,
                                             purchased_date: transaction.purchased_date,
                                         });
                                     });

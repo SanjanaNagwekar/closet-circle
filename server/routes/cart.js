@@ -2,6 +2,7 @@ const express = require('express');
 const { all, exec, get, run } = require('../database');
 
 const CART_INTENTS = new Set(['purchase', 'rental']);
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function asyncRoute(handler) {
     return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
@@ -11,6 +12,55 @@ function httpError(statusCode, message) {
     const error = new Error(message);
     error.statusCode = statusCode;
     return error;
+}
+
+function parseRentalDates(startDateValue, endDateValue) {
+    const startDate = String(startDateValue || '');
+    const endDate = String(endDateValue || '');
+    if (!DATE_PATTERN.test(startDate) || !DATE_PATTERN.test(endDate)) {
+        throw httpError(400, 'Choose valid rental dates');
+    }
+
+    const start = new Date(`${startDate}T00:00:00Z`);
+    const end = new Date(`${endDate}T00:00:00Z`);
+    if (
+        Number.isNaN(start.getTime())
+        || Number.isNaN(end.getTime())
+        || start.toISOString().slice(0, 10) !== startDate
+        || end.toISOString().slice(0, 10) !== endDate
+    ) {
+        throw httpError(400, 'Choose valid rental dates');
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    if (startDate < today) throw httpError(400, 'Rental start date cannot be in the past');
+    if (endDate < startDate) throw httpError(400, 'Rental end date must be on or after the start date');
+    return { startDate, endDate };
+}
+
+async function hasApprovedConflict(db, postId, startDate, endDate) {
+    return get(
+        db,
+        `SELECT rental_id
+         FROM Rental_Request
+         WHERE post_id = ?
+           AND status = 'approved'
+           AND start_date <= ?
+           AND end_date >= ?
+         LIMIT 1`,
+        [postId, endDate, startDate],
+    );
+}
+
+async function hasApprovedRental(db, postId) {
+    return get(
+        db,
+        `SELECT rental_id
+         FROM Rental_Request
+         WHERE post_id = ? AND status = 'approved'
+         LIMIT 1`,
+        [postId],
+    );
 }
 
 async function pendingCart(db, email, create = false) {
@@ -47,7 +97,8 @@ async function cartItems(db, transactionId) {
         db,
         `SELECT P.post_id, P.owner_id, P.title, P.description, P.item_condition,
                 P.size, P.bflag, P.sflag, P.listing_status,
-                TL.intent, COALESCE(TL.unit_price, P.price) AS price,
+                TL.intent, TL.rental_start_date, TL.rental_end_date,
+                COALESCE(TL.unit_price, P.price) AS price,
                 EXISTS (
                     SELECT 1
                     FROM Transaction_Listing PurchasedListing
@@ -131,14 +182,43 @@ module.exports = (db, { requireUser }) => {
         try {
             const listing = await loadAvailableListing(db, postId);
             validateAvailableListing(listing, req.currentUser.email, intent);
+            if (intent === 'purchase' && await hasApprovedRental(db, postId)) {
+                throw httpError(409, 'This item is currently committed to a rental');
+            }
+            const rentalDates = intent === 'rental'
+                ? parseRentalDates(req.body.startDate, req.body.endDate)
+                : { startDate: null, endDate: null };
+            if (
+                intent === 'rental'
+                && await hasApprovedConflict(
+                    db,
+                    postId,
+                    rentalDates.startDate,
+                    rentalDates.endDate,
+                )
+            ) {
+                throw httpError(409, 'This item is already booked for those dates');
+            }
             const cart = await pendingCart(db, req.currentUser.email, true);
             await run(
                 db,
-                `INSERT INTO Transaction_Listing (transaction_id, post_id, intent, unit_price)
-                 VALUES (?, ?, ?, ?)
+                `INSERT INTO Transaction_Listing (
+                    transaction_id, post_id, intent, unit_price,
+                    rental_start_date, rental_end_date
+                 ) VALUES (?, ?, ?, ?, ?, ?)
                  ON CONFLICT(transaction_id, post_id)
-                 DO UPDATE SET intent = excluded.intent, unit_price = excluded.unit_price`,
-                [cart.transaction_id, postId, intent, listing.price],
+                 DO UPDATE SET intent = excluded.intent,
+                               unit_price = excluded.unit_price,
+                               rental_start_date = excluded.rental_start_date,
+                               rental_end_date = excluded.rental_end_date`,
+                [
+                    cart.transaction_id,
+                    postId,
+                    intent,
+                    listing.price,
+                    rentalDates.startDate,
+                    rentalDates.endDate,
+                ],
             );
             await exec(db, 'COMMIT;');
             res.status(201).json({
@@ -179,6 +259,23 @@ module.exports = (db, { requireUser }) => {
                 if (item.price === null || item.price <= 0) {
                     throw httpError(409, `${item.title} no longer has a valid price`);
                 }
+                if (item.intent === 'purchase' && await hasApprovedRental(db, item.post_id)) {
+                    throw httpError(409, `${item.title} is currently committed to a rental`);
+                }
+                if (item.intent === 'rental') {
+                    const rentalDates = parseRentalDates(
+                        item.rental_start_date,
+                        item.rental_end_date,
+                    );
+                    if (await hasApprovedConflict(
+                        db,
+                        item.post_id,
+                        rentalDates.startDate,
+                        rentalDates.endDate,
+                    )) {
+                        throw httpError(409, `${item.title} is already booked for those dates`);
+                    }
+                }
             }
 
             const purchaseIds = items
@@ -193,6 +290,36 @@ module.exports = (db, { requireUser }) => {
                      WHERE post_id IN (${placeholders})`,
                     purchaseIds,
                 );
+                await run(
+                    db,
+                    `UPDATE Rental_Request
+                     SET status = 'declined', decision_at = CURRENT_TIMESTAMP,
+                         updated_at = CURRENT_TIMESTAMP
+                     WHERE status = 'pending'
+                       AND post_id IN (${placeholders})`,
+                    purchaseIds,
+                );
+            }
+
+            const rentalItems = items.filter((item) => item.intent === 'rental');
+            const purchaseCount = items.length - rentalItems.length;
+            for (const item of rentalItems) {
+                await run(
+                    db,
+                    `INSERT INTO Rental_Request (
+                        transaction_id, post_id, renter_email, seller_email,
+                        start_date, end_date, daily_rate
+                     ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    [
+                        cart.transaction_id,
+                        item.post_id,
+                        req.currentUser.email,
+                        item.owner_id,
+                        item.rental_start_date,
+                        item.rental_end_date,
+                        item.price,
+                    ],
+                );
             }
 
             const checkout = await run(
@@ -206,10 +333,17 @@ module.exports = (db, { requireUser }) => {
                 throw httpError(409, 'Your cart changed before checkout. Please try again');
             }
             await exec(db, 'COMMIT;');
+            const message = purchaseCount > 0 && rentalItems.length > 0
+                ? 'Order placed and rental requests submitted'
+                : rentalItems.length > 0
+                    ? 'Rental request submitted'
+                    : 'Order placed successfully';
             res.json({
-                message: 'Order placed successfully',
+                message,
                 orderId: cart.transaction_id,
                 itemCount: items.length,
+                purchaseCount,
+                rentalRequestCount: rentalItems.length,
             });
         } catch (error) {
             await exec(db, 'ROLLBACK;');

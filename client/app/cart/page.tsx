@@ -20,6 +20,25 @@ interface Product {
     price     : number;
     images    : string[];       
     intent    : 'purchase' | 'rental';
+    rentalStartDate?: string;
+    rentalEndDate?: string;
+}
+
+function rentalDays(startDate?: string, endDate?: string) {
+    if (!startDate || !endDate) return 0;
+    return Math.floor(
+        (Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`))
+        / 86_400_000,
+    ) + 1;
+}
+
+function displayDate(date?: string) {
+    if (!date) return '';
+    return new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
 }
 
 /* ============================================
@@ -124,6 +143,14 @@ const Header: React.FC = () => {
                                 >
                                     View Profile
                                 </Link>
+                                <Link
+                                    href="/profile/rentals"
+                                    className="block px-4 py-2 hover:bg-gray-100"
+                                    style={{ color: brandNavy }}
+                                    onClick={() => setOpen(false)}
+                                >
+                                    Rental Dashboard
+                                </Link>
                                 <a
                                     href="/api/auth/logout"
                                     className="block px-4 py-2 hover:bg-gray-100"
@@ -151,6 +178,12 @@ const CartPage: React.FC = () => {
     const taxAmount = subtotal * 0.093;
     const shippingCost = subtotal === 0 || subtotal >= 30 ? 0 : 5.99;
     const grandTotal = subtotal + taxAmount + shippingCost;
+    const rentalEstimate = cartItems
+        .filter((item) => item.intent === 'rental')
+        .reduce(
+            (sum, item) => sum + item.price * rentalDays(item.rentalStartDate, item.rentalEndDate),
+            0,
+        );
 
     const handleRemoveItem = async (id: number) => {
         setMessage('');
@@ -206,6 +239,8 @@ const CartPage: React.FC = () => {
                 price: Number(post.price),
                 images: post.images,
                 intent: post.intent,
+                rentalStartDate: post.rental_start_date,
+                rentalEndDate: post.rental_end_date,
             }))))
             .catch((error) => setMessage(error.message))
             .finally(() => setIsLoading(false));
@@ -274,6 +309,12 @@ const CartPage: React.FC = () => {
                                         ${item.price.toFixed(2)}
                                         {item.intent === 'rental' && <span> per day</span>}
                                     </p>
+                                    {item.intent === 'rental' && (
+                                        <p className="mt-1 text-sm text-gray-500">
+                                            {displayDate(item.rentalStartDate)}–{displayDate(item.rentalEndDate)} ·{' '}
+                                            {rentalDays(item.rentalStartDate, item.rentalEndDate)} days
+                                        </p>
+                                    )}
                                     </div>
                                     <button
                                         onClick={() => handleRemoveItem(item.id)}
@@ -300,6 +341,12 @@ const CartPage: React.FC = () => {
                                 <span>Shipping</span>
                                 <span>{subtotal >= 30 ? 'Free' : `$${shippingCost.toFixed(2)}`}</span>
                             </div>
+                            {rentalEstimate > 0 && (
+                                <div className="mb-4 flex justify-between" style={{ color: brandBrown }}>
+                                    <span>Rental estimate</span>
+                                    <span>${rentalEstimate.toFixed(2)}</span>
+                                </div>
+                            )}
                             {subtotal > 0 && subtotal < 30 && (
                                 <div className="text-sm mb-2" style={{ color: 'rgba(brandBrownRGB, 0.7)' }}>
                                     ${(30 - subtotal).toFixed(2)} more to qualify for free shipping

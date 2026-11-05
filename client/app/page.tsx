@@ -35,6 +35,41 @@ interface Product {
     lister    : Lister;            // NEW
 }
 
+const audienceMap = [
+    { label: "Women's", dbValue: 1 },
+    { label: "Men's", dbValue: 2 },
+    { label: 'Kids', dbValue: 3 },
+];
+const typeMap = [
+    { label: 'Tops', dbValue: 4 },
+    { label: 'Bottoms', dbValue: 5 },
+    { label: 'Outerwear', dbValue: 6 },
+    { label: 'Dresses', dbValue: 7 },
+    { label: 'Shoes', dbValue: 8 },
+    { label: 'Accessories', dbValue: 9 },
+];
+const colorMap = [
+    { label: 'black', dbValue: 10 },
+    { label: 'white', dbValue: 11 },
+    { label: 'red', dbValue: 12 },
+    { label: 'blue', dbValue: 13 },
+    { label: 'green', dbValue: 14 },
+    { label: 'pink', dbValue: 15 },
+];
+const conditionMap = new Map([
+    ['new', 'Brand new'],
+    ['excellent', 'Used – Like new'],
+    ['good', 'Used – Good'],
+    ['worn', 'Used – Fair'],
+]);
+
+function labelsFor(values: unknown, options: { label: string; dbValue: number }[]) {
+    if (!Array.isArray(values)) return [];
+    return options
+        .filter((option) => values.includes(option.dbValue))
+        .map((option) => option.label);
+}
+
 const Header: React.FC = () => {
     const { user } = useUser();
 
@@ -495,67 +530,6 @@ export default function Home() {
 
     const [featuredItems, setFeaturedItems] = useState<Product[]>([]);
 
-    /* filter options */
-    const typeOptions    = ['Tops','Bottoms','Outerwear','Dresses','Shoes','Accessories'];
-    const genderOptions  = ["Men's","Women's","Kids"];
-    const categoryOptions= ['For Rent','For Sale'];
-    const conditionOpts  = ['Brand new','Used – Like new','Used – Good','Used – Fair'];
-    const sizeOptions    = ['XX-Small','X-Small','Small','Medium','Large','X-Large','XX-Large','3X-Large','4X-Large'];
-    const colorOptions   = ['black','white','red','blue','green','pink'];
-
-    // map UI labels to db values
-    const audienceMap = [
-        { label: genderOptions[1], db_val: 1 }, // Women's
-        { label: genderOptions[0], db_val: 2 }, // Men's
-        { label: genderOptions[2], db_val: 3 } // Kids
-    ];
-
-    const typesMap = [
-        { label: typeOptions[0], db_val: 4 },
-        { label: typeOptions[1], db_val: 5 },
-        { label: typeOptions[2], db_val: 6 },
-        { label: typeOptions[3], db_val: 7 },
-        { label: typeOptions[4], db_val: 8 },
-        { label: typeOptions[5], db_val: 9 }
-    ];
-
-    const colorsMap = [
-        { label: colorOptions[0], db_val: 10 },
-        { label: colorOptions[1], db_val: 11 },
-        { label: colorOptions[2], db_val: 12 },
-        { label: colorOptions[3], db_val: 13 },
-        { label: colorOptions[4], db_val: 14 },
-        { label: colorOptions[5], db_val: 15 }
-    ];
-
-    const dbConditionVals = [
-        { label: conditionOpts[0], db_val: "new"},
-        { label: conditionOpts[1], db_val: "excellent"},
-        { label: conditionOpts[2], db_val: "good"},
-        { label: conditionOpts[3], db_val: "worn"},
-    ];
-
-    // returns one string for type ("Women's", "Men's", or "Kids")
-    function getUIAudience(dbVals: any) {
-        return audienceMap.filter(item => dbVals.includes(item.db_val)).map(item => item.label);
-    }
-
-    // returns one string for type (Tops, Bottoms, Outerwear, ...)
-    function getUIType(dbVals: any) {
-        return typesMap.filter(item => dbVals.includes(item.db_val)).map(item => item.label);
-    }
-
-    // returns array of colors as strings
-    function getUIColors(dbVals: any) {
-        return colorsMap.filter(item => dbVals.includes(item.db_val)).map(item => item.label);
-    }
-
-    // returns one string for condition
-    function getUICondition(condition: string) {
-        var matchedCondition = dbConditionVals.find(item => item.db_val == condition);
-        return matchedCondition?.label;
-    }
-
     useEffect(() => {
         fetch(apiUrl('/api/posts/trending'))
             .then((response) => {
@@ -578,11 +552,11 @@ export default function Home() {
                     forSale: post.sflag === 1,
                     forRent: post.bflag === 1,
                     sold: post.sold ?? false,
-                    type: getUIType(post.categories), //post.type ?? '',
-                    audience: getUIAudience(post.categories), //post.audience ?? '',
-                    colors: getUIColors(post.categories), //post.colors ?? [],
+                    type: labelsFor(post.categories, typeMap), //post.type ?? '',
+                    audience: labelsFor(post.categories, audienceMap), //post.audience ?? '',
+                    colors: labelsFor(post.categories, colorMap), //post.colors ?? [],
                     sizes: post.size ? [post.size] : [], // Wrap size in an array
-                    condition: getUICondition(post.item_condition), //post.item_condition,
+                    condition: conditionMap.get(post.item_condition) || '', //post.item_condition,
                     description: post.description,
                     images: post.images, // Use the images array directly
                     lister: {

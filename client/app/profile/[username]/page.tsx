@@ -28,6 +28,27 @@ const conditionOptions = ['Brand new','Used – Like new','Used – Good','Used 
 const sizeOptions      = ['XX-Small','X-Small','Small','Medium','Large','X-Large','XX-Large','3X-Large','4X-Large'] as const;
 const colorOptions     = ['black','white','red','blue','green','pink'] as const;
 
+const audienceMap = [
+    { label: "Women's", dbValue: 1 },
+    { label: "Men's", dbValue: 2 },
+    { label: 'Kids', dbValue: 3 },
+];
+const typeMap = typeOptions.map((label, index) => ({ label, dbValue: index + 4 }));
+const colorMap = colorOptions.map((label, index) => ({ label, dbValue: index + 10 }));
+const conditionMap = new Map([
+    ['new', conditionOptions[0]],
+    ['excellent', conditionOptions[1]],
+    ['good', conditionOptions[2]],
+    ['worn', conditionOptions[3]],
+]);
+
+function labelsFor(values: unknown, options: { label: string; dbValue: number }[]) {
+    if (!Array.isArray(values)) return [];
+    return options
+        .filter((option) => values.includes(option.dbValue))
+        .map((option) => option.label);
+}
+
 export default function ProfilePageByUsername() {
     const { user } = useUser();
     const [followToggle, setToggled] = useState(true); // default button shows 'Follow'
@@ -38,7 +59,7 @@ export default function ProfilePageByUsername() {
     //const [email,     setEmail    ] = useState('');
     const [bio,       setBio      ] = useState('');
     const [items, setClosetItems] = useState<Product[]>([]);
-    const [unavailablePostIDs, setUnavailableArr] = useState<Number[]>([]);
+    const [unavailablePostIDs, setUnavailableArr] = useState<number[]>([]);
 
     // 1) grab the URL segment
     const params        = useParams();
@@ -48,7 +69,6 @@ export default function ProfilePageByUsername() {
 
     /* get profile info from db */
     useEffect(() => {
-        console.log("raw param: " + rawParam);
         console.log("email: " + email);
         // Get specific user information from db - O.C.
         fetch(apiUrl(`/api/profile?email=${email}`))
@@ -60,7 +80,7 @@ export default function ProfilePageByUsername() {
                 setBio(data.users[0].bio);
         })
         .catch(error => console.error('Error:', error));
-    }, []);
+    }, [email]);
 
     // 2) User info
     const userInfo = {
@@ -87,7 +107,7 @@ export default function ProfilePageByUsername() {
                     setUnavailableArr(data.orders.map((item: { post_id: any; }) => item.post_id));
                 })
                 .catch((error) => console.log('Error fetching ordered items: ', error));
-    }, []);
+    }, [email]);
 
     /* fetch user’s closet */
         useEffect(() => {
@@ -103,71 +123,18 @@ export default function ProfilePageByUsername() {
                         forRent   : p.bflag === 1,
                         sold      : unavailablePostIDs.includes(p.post_id),
                         images    : p.images,
-                        type      : getUIType(p.categories),
-                        audience  : getUIAudience(p.categories),
-                        colors    : getUIColors(p.categories),
+                        type      : labelsFor(p.categories, typeMap),
+                        audience  : labelsFor(p.categories, audienceMap),
+                        colors    : labelsFor(p.categories, colorMap),
                         sizes     : [p.size],
-                        condition : getUICondition(p.item_condition),
+                        condition : conditionMap.get(p.item_condition) || '',
                         description: p.description,
                     }));
                     
                     setClosetItems(transformed.length ? [...transformed] : []);
                 })
                 .catch(console.error);
-        }, [unavailablePostIDs]);
-
-    // map UI labels to db values
-    const audienceMap = [
-        { label: "Women's", db_val: 1 },
-        { label: "Men's", db_val: 2 },
-        { label: "Kids", db_val: 3 }
-    ];
-
-    const typesMap = [
-        { label: "Tops", db_val: 4 },
-        { label: "Bottoms", db_val: 5 },
-        { label: "Outerwear", db_val: 6 },
-        { label: "Dresses", db_val: 7 },
-        { label: "Shoes", db_val: 8 },
-        { label: "Accessories", db_val: 9 }
-    ];
-
-    const colorsMap = [
-        { label: colorOptions[0], db_val: 10 },
-        { label: colorOptions[1], db_val: 11 },
-        { label: colorOptions[2], db_val: 12 },
-        { label: colorOptions[3], db_val: 13 },
-        { label: colorOptions[4], db_val: 14 },
-        { label: colorOptions[5], db_val: 15 }
-    ];
-
-    const dbConditionVals = [
-        { label: conditionOptions[0], db_val: "new"},
-        { label: conditionOptions[1], db_val: "excellent"},
-        { label: conditionOptions[2], db_val: "good"},
-        { label: conditionOptions[3], db_val: "worn"},
-    ];
-
-    // returns one string for type ("Women's", "Men's", or "Kids")
-    function getUIAudience(dbVals: any) {
-        return audienceMap.filter(item => dbVals.includes(item.db_val)).map(item => item.label);
-    }
-
-    // returns one string for type (Tops, Bottoms, Outerwear, ...)
-    function getUIType(dbVals: any) {
-        return typesMap.filter(item => dbVals.includes(item.db_val)).map(item => item.label);
-    }
-
-    // returns array of colors as strings
-    function getUIColors(dbVals: any) {
-        return colorsMap.filter(item => dbVals.includes(item.db_val)).map(item => item.label);
-    }
-
-    // returns one string for condition
-    function getUICondition(condition: string) {
-        var matchedCondition = dbConditionVals.find(item => item.db_val == condition);
-        return matchedCondition?.label;
-    }
+        }, [email, unavailablePostIDs]);
     
     /* Check if this logged in user is following this profile */
     /* get this profile's followers, check if logged in user is included, set Unfollow if so */
@@ -183,7 +150,7 @@ export default function ProfilePageByUsername() {
                     setToggled(true); // true means button shows 'Follow'
                 }
             })
-    }, [user]);
+    }, [email, user]);
 
   /* 
     Follow button saves friends to the database through POST
