@@ -12,6 +12,7 @@ import ListingEditorModal, {
     ListingStatus,
 } from './ListingEditorModal';
 import SiteFooter from '../components/SiteFooter';
+import SiteHeader from '../components/SiteHeader';
 
 /* ============================================
    BRAND COLORS
@@ -765,12 +766,13 @@ const ProfilePage: React.FC = () => {
 
     /* page */
     return (
-        <div className="min-h-screen bg-white">
-            <Header />
+        <div className="account-page min-h-screen bg-white">
+            <SiteHeader />
 
-            <div className="container mx-auto py-6 px-4">
-                <h1 style={{ color: brandBrown }} className="text-4xl font-medium mb-8">
-                    My Account
+            <div className="account-content container mx-auto py-6 px-4">
+                <p className="eyebrow">Your closet</p>
+                <h1 className="account-title">
+                    My account
                 </h1>
 
                 <div className="flex flex-col md:flex-row gap-8">

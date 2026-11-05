@@ -67,10 +67,10 @@ function NewUsersPage() {
 
   return (
       <div
-          className="min-h-screen flex items-center justify-center"
+          className="onboarding-page min-h-screen flex items-center justify-center"
           style={{backgroundColor: brandPink}}
       >
-        <div className="w-full max-w-lg bg-white rounded-2xl shadow-lg p-10 mx-4">
+        <div className="onboarding-card w-full max-w-lg bg-white rounded-2xl shadow-lg p-10 mx-4">
           {/* Logo inside the white box */}
           <div className="flex justify-center mb-8">
             <Image
@@ -88,7 +88,7 @@ function NewUsersPage() {
               className="text-center text-2xl font-semibold mb-8"
               style={{color: brandBrown}}
           >
-            Continue Account Creation
+            Set up your Closet Circle profile
           </h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">

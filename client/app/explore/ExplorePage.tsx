@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -8,6 +9,7 @@ import { useUser } from '@auth0/nextjs-auth0/client';
 import { apiUrl } from '@/lib/api';
 import RentalDateModal from './RentalDateModal';
 import SiteFooter from '../components/SiteFooter';
+import SiteHeader from '../components/SiteHeader';
 
 /* ============================================
    BRAND COLORS
@@ -49,7 +51,7 @@ const avatar = (name: string) =>
 /* ============================================
    HEADER
 ============================================ */
-const Header: React.FC = () => {
+const LegacyHeader: React.FC = () => {
     const { user } = useUser();
     const [menuOpen, setMenuOpen] = useState(false);
     const dropRef                 = useRef<HTMLDivElement|null>(null);
@@ -202,7 +204,7 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) 
     const [isUpdatingFavorite, setIsUpdatingFavorite] = useState(false);
     const [rentalModalOpen, setRentalModalOpen] = useState(false);
     const [feedback, setFeedback] = useState('');
-    const ref= useRef<HTMLDivElement|null>(null);
+    const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
     useEffect(() => {
         setFav(initialFav);
@@ -271,13 +273,19 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) 
         }
     };
 
-    /* click-away */
     useEffect(() => {
         if (!open) return;
-        const h = (e: MouseEvent) =>
-            ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
-        document.addEventListener('mousedown', h);
-        return () => document.removeEventListener('mousedown', h);
+        const previousOverflow = document.body.style.overflow;
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setOpen(false);
+        };
+        document.body.style.overflow = 'hidden';
+        document.addEventListener('keydown', closeOnEscape);
+        closeButtonRef.current?.focus();
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            document.removeEventListener('keydown', closeOnEscape);
+        };
     }, [open]);
 
     const imgs      = product.images ?? [];
@@ -287,10 +295,9 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) 
     const unavailable = (!product.forSale && !product.forRent) || product.sold;
 
     return (
-        <div ref={ref} className="relative bg-gray-100 rounded-lg border overflow-visible">
+        <article className="marketplace-card">
             <Link href={`/profile/${product.lister.username}`}
-                  className="absolute top-2 left-2 z-[60] flex items-center gap-1
-                       bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-full">
+                  className="marketplace-card__seller">
                 <Image
                     alt={product.lister.display}
                     className="w-5 h-5 rounded-full"
@@ -299,14 +306,13 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) 
                     unoptimized
                     width={20}
                 />
-                <span className="text-xs font-medium text-black">{product.lister.display}</span>
+                <span>{product.lister.display}</span>
             </Link>
 
             {/* favourite heart */}
             <button onClick={toggleFavorite}
                     aria-label={fav ? `Remove ${product.title} from favorites` : `Add ${product.title} to favorites`}
-                    className="absolute top-2 right-2 z-[55] w-8 h-8 rounded-full bg-white
-                         flex items-center justify-center disabled:opacity-60"
+                    className="marketplace-card__favorite"
                     disabled={isUpdatingFavorite}
                     style={{ color: brandNavy }}>
                 <svg width="18" height="18" viewBox="0 0 24 24"
@@ -320,10 +326,10 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) 
 
             {/* image section */}
             {imgCount ? (
-                <div className="relative">
+                <div className="marketplace-card__media">
                     <Image
                         alt={product.title}
-                        className="aspect-square w-full object-cover"
+                        className="marketplace-card__image"
                         height={600}
                         src={imgs[i]}
                         unoptimized
@@ -355,35 +361,45 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) 
                             </button>
                         </>
                     )}
+                    <button
+                        className="marketplace-card__quick-view"
+                        onClick={() => setOpen(true)}
+                        type="button"
+                    >
+                        Quick view <span aria-hidden="true">↗</span>
+                    </button>
                 </div>
             ) : (
-                <div className="bg-gray-200 aspect-square w-full" />
+                <div className="marketplace-card__media">
+                    <div className="marketplace-card__placeholder" />
+                    <button className="marketplace-card__quick-view" onClick={() => setOpen(true)} type="button">
+                        Quick view <span aria-hidden="true">↗</span>
+                    </button>
+                </div>
             )}
             {/* title + toggle */}
-            <div className="p-3">
-                <div className="flex justify-between items-start">
-                    <h3 className="text-sm font-medium text-black mb-2 pr-2 line-clamp-2">{product.title}</h3>
-                    <button onClick={()=>setOpen(!open)} className="flex items-center gap-1 text-sm text-black">
-                        <span>See more</span>
-                        <svg className={`w-5 h-5 transition-transform ${open?'rotate-180':''}`} viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 011.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z" clipRule="evenodd"/>
-                        </svg>
-                    </button>
+            <div className="marketplace-card__body">
+                <div className="marketplace-card__title-row">
+                    <div>
+                      <h3>{product.title}</h3>
+                      <p>{[product.condition, product.sizes?.[0]].filter(Boolean).join(' · ') || 'Pre-loved piece'}</p>
+                    </div>
+                    <span className="marketplace-card__price">${product.price}</span>
                 </div>
 
                 {/* CTAs */}
-                <div className="flex gap-2">
+                <div className="marketplace-card__actions">
                     {unavailable
-                        ? <div className="bg-gray-300 text-center py-1 px-3 rounded-sm w-full text-sm">Unavailable</div>
+                        ? <div className="marketplace-card__unavailable">Unavailable</div>
                         : <>
                             {product.forSale &&
-                                <button style={{ backgroundColor: brandBrown }} className="text-white text-sm py-1 px-3 rounded-sm flex-1 disabled:opacity-60"
+                                <button className="marketplace-card__buy"
                                 disabled={isAdding}
                                 onClick={() => addToCart('purchase')}>
-                                    Buy for ${product.price}
+                                    Buy
                                 </button>}
                             {product.forRent &&
-                                <button style={{ color: brandBrown }} className="border border-gray-400 text-sm py-1 px-3 rounded-sm flex-1 disabled:opacity-60"
+                                <button className="marketplace-card__rent"
                                 disabled={isAdding}
                                 onClick={() => {
                                     if (!user) {
@@ -392,24 +408,110 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) 
                                     }
                                     setRentalModalOpen(true);
                                 }}>
-                                    Rent for ${product.price} Per Day
+                                    Rent · ${product.price}/day
                                 </button>}
                         </>}
                 </div>
                 {feedback && <p className="mt-2 text-xs text-[#675a5e]" role="status">{feedback}</p>}
             </div>
 
-            {/* dropdown */}
-            {open && (
-                <div className="absolute left-0 right-0 top-full mt-1 bg-gray-100
-                        border border-gray-300 border-t-0 rounded-b-md p-4
-                        text-sm text-black z-[100]">
-                    <p><strong>Sizes:</strong> {product.sizes.join(', ')}</p>
-                    <p><strong>Colors:</strong> {product.colors.join(', ')}</p>
-                    <p><strong>Condition:</strong> {product.condition}</p>
-                    {product.description && <p><strong>Description:</strong> {product.description}</p>}
-                </div>
-            )}
+            {open && typeof document !== 'undefined' ? createPortal(
+                <div
+                    className="quick-view"
+                    onMouseDown={(event) => {
+                        if (event.currentTarget === event.target) setOpen(false);
+                    }}
+                >
+                    <section
+                        aria-labelledby={`quick-view-title-${product.id}`}
+                        aria-modal="true"
+                        className="quick-view__dialog"
+                        role="dialog"
+                    >
+                        <button
+                            aria-label="Close quick view"
+                            className="quick-view__close"
+                            onClick={() => setOpen(false)}
+                            ref={closeButtonRef}
+                            type="button"
+                        >
+                            <span aria-hidden="true">×</span>
+                        </button>
+
+                        <div className="quick-view__media">
+                            {imgCount ? (
+                                <Image
+                                    alt={product.title}
+                                    className="quick-view__image"
+                                    height={900}
+                                    src={imgs[i]}
+                                    unoptimized
+                                    width={760}
+                                />
+                            ) : <div className="quick-view__placeholder">No image available</div>}
+                            {imgCount > 1 ? (
+                                <div className="quick-view__gallery-controls">
+                                    <button aria-label="Previous image" onClick={prevImg} type="button">←</button>
+                                    <span>{i + 1} / {imgCount}</span>
+                                    <button aria-label="Next image" onClick={nextImg} type="button">→</button>
+                                </div>
+                            ) : null}
+                        </div>
+
+                        <div className="quick-view__content">
+                            <p className="quick-view__eyebrow">Quick view</p>
+                            <h2 id={`quick-view-title-${product.id}`}>{product.title}</h2>
+                            <p className="quick-view__price">${product.price}{product.forRent ? <span> / day to rent</span> : null}</p>
+
+                            <Link className="quick-view__seller" href={`/profile/${product.lister.username}`}>
+                                <Image alt="" height={32} src={product.lister.avatarUrl} unoptimized width={32} />
+                                <span>Listed by <strong>{product.lister.display}</strong></span>
+                            </Link>
+
+                            <div className="quick-view__facts">
+                                <div><span>Size</span><strong>{product.sizes.join(', ') || 'Not listed'}</strong></div>
+                                <div><span>Condition</span><strong>{product.condition || 'Not listed'}</strong></div>
+                                <div><span>Color</span><strong>{product.colors.join(', ') || 'Not listed'}</strong></div>
+                                <div><span>Available</span><strong>{[product.forSale && 'Buy', product.forRent && 'Rent'].filter(Boolean).join(' · ')}</strong></div>
+                            </div>
+
+                            <div className="quick-view__description">
+                                <h3>About this piece</h3>
+                                <p>{product.description || 'The seller has not added a description for this piece yet.'}</p>
+                            </div>
+
+                            <div className="quick-view__actions">
+                                {unavailable ? <div className="marketplace-card__unavailable">Unavailable</div> : (
+                                    <>
+                                        {product.forSale ? (
+                                            <button disabled={isAdding} onClick={() => addToCart('purchase')} type="button">Buy for ${product.price}</button>
+                                        ) : null}
+                                        {product.forRent ? (
+                                            <button
+                                                className="quick-view__rent"
+                                                disabled={isAdding}
+                                                onClick={() => {
+                                                    if (!user) {
+                                                        router.push('/api/auth/login');
+                                                        return;
+                                                    }
+                                                    setOpen(false);
+                                                    setRentalModalOpen(true);
+                                                }}
+                                                type="button"
+                                            >
+                                                Choose rental dates
+                                            </button>
+                                        ) : null}
+                                    </>
+                                )}
+                            </div>
+                            {feedback ? <p className="quick-view__feedback" role="status">{feedback}</p> : null}
+                        </div>
+                    </section>
+                </div>,
+                document.body,
+            ) : null}
             <RentalDateModal
                 isSaving={isAdding}
                 onClose={() => setRentalModalOpen(false)}
@@ -418,7 +520,7 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) 
                 rate={product.price}
                 title={product.title}
             />
-        </div>
+        </article>
     );
 };
 
@@ -613,14 +715,28 @@ const ExplorePage: React.FC = () => {
     /* render */
     return (
         <div className="min-h-screen flex flex-col bg-white">
-            <Header/>
+            <SiteHeader/>
 
-            <div className="container mx-auto py-6 px-4 flex-1 flex gap-6">
+            <section className="explore-hero">
+                <div className="page-container">
+                    <p className="eyebrow">The community closet</p>
+                    <div className="explore-hero__row">
+                        <h1>Find your next favorite.</h1>
+                        <p>Shop pre-loved pieces or borrow something special. Filter the circle to find exactly what fits your style.</p>
+                    </div>
+                </div>
+            </section>
+
+            <div className="explore-layout page-container">
                 {/* SIDEBAR */}
-                <aside className="w-64 space-y-6 text-black">
+                <aside className="explore-filters">
+                    <div className="explore-filters__heading">
+                        <div><span>Refine</span><h2>Filters</h2></div>
+                        <button type="button" onClick={() => { setTypes([]); setCats([]); setConds([]); setSizes([]); setColors([]); setGender([]); setPrice(['0', '80']); setPage(1); }}>Clear all</button>
+                    </div>
                     {/* sort */}
-                    <div>
-                        <h3 className="font-semibold mb-2">Sort by</h3>
+                    <div className="filter-group">
+                        <h3>Sort by</h3>
                         <select value={sort} onChange={e=>{setSort(e.target.value);setPage(1);}}
                                 className="w-full border p-2 text-black">
                             <option>Most Popular</option><option>Price: Low to High</option><option>Price: High to Low</option>
@@ -628,8 +744,8 @@ const ExplorePage: React.FC = () => {
                     </div>
 
                     {/* gender */}
-                    <div>
-                        <h3 className="font-semibold mb-2">Audience</h3>
+                    <div className="filter-group">
+                        <h3>Audience</h3>
                         {genderOptions.map(g=>(
                             <label key={g} className="flex items-center mb-1">
                                 <input type="checkbox" className="mr-2" checked={selGender.includes(g)}
@@ -639,8 +755,8 @@ const ExplorePage: React.FC = () => {
                     </div>
 
                     {/* type */}
-                    <div>
-                        <h3 className="font-semibold mb-2">Type</h3>
+                    <div className="filter-group">
+                        <h3>Type</h3>
                         {typeOptions.map(t=>(
                             <label key={t} className="flex items-center mb-1">
                                 <input type="checkbox" className="mr-2" checked={selTypes.includes(t)}
@@ -650,8 +766,8 @@ const ExplorePage: React.FC = () => {
                     </div>
 
                     {/* category */}
-                    <div>
-                        <h3 className="font-semibold mb-2">Category</h3>
+                    <div className="filter-group">
+                        <h3>Shop by</h3>
                         {categoryOptions.map(c=>(
                             <label key={c} className="flex items-center mb-1">
                                 <input type="checkbox" className="mr-2" checked={selCats.includes(c)}
@@ -661,8 +777,8 @@ const ExplorePage: React.FC = () => {
                     </div>
 
                     {/* price */}
-                    <div>
-                        <h3 className="font-semibold mb-2">Price ($)</h3>
+                    <div className="filter-group">
+                        <h3>Price ($)</h3>
                         <div className="flex gap-2 items-center">
                             <input type="number" value={priceInput[0]} onChange={e => handlePriceChange(0, e.target.value)} className="border px-2 w-20"/>
                             <span>-</span>
@@ -671,8 +787,8 @@ const ExplorePage: React.FC = () => {
                     </div>
 
                     {/* colours */}
-                    <div>
-                        <h3 className="font-semibold mb-2">Colors</h3>
+                    <div className="filter-group">
+                        <h3>Colors</h3>
                         <div className="flex flex-wrap gap-2">
                             {colorOptions.map(c=>(
                                 <button key={c} onClick={()=>toggle(c,selColors,setColors)}
@@ -683,8 +799,8 @@ const ExplorePage: React.FC = () => {
                     </div>
 
                     {/* size */}
-                    <div>
-                        <h3 className="font-semibold mb-2">Size</h3>
+                    <div className="filter-group">
+                        <h3>Size</h3>
                         <div className="flex flex-wrap gap-2">
                             {sizeOptions.map(s=>(
                                 <button key={s} onClick={()=>toggle(s,selSizes,setSizes)}
@@ -694,8 +810,8 @@ const ExplorePage: React.FC = () => {
                     </div>
 
                     {/* condition */}
-                    <div>
-                        <h3 className="font-semibold mb-2">Condition</h3>
+                    <div className="filter-group">
+                        <h3>Condition</h3>
                         {conditionOpts.map(c=>(
                             <label key={c} className="flex items-center mb-1">
                                 <input type="checkbox" className="mr-2" checked={selConds.includes(c)}
@@ -706,10 +822,13 @@ const ExplorePage: React.FC = () => {
                 </aside>
 
                 {/* MAIN GRID */}
-                <main className="flex-1">
-                    <h2 className="text-2xl font-semibold mb-4">Shop Products</h2>
+                <main className="explore-results">
+                    <div className="explore-results__heading">
+                        <div><p>Curated from the community</p><h2>{filtered.length} pieces</h2></div>
+                        <span>Page {Math.min(page, Math.max(pages, 1))} of {Math.max(pages, 1)}</span>
+                    </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="explore-grid">
                         {items.map((product) => (
                             <ProductCard
                                 initialFav={wishlistIds.includes(product.id)}
@@ -720,7 +839,7 @@ const ExplorePage: React.FC = () => {
                     </div>
 
                     {/* pagination */}
-                    <div className="flex justify-center items-center gap-2 mt-8">
+                    <div className="explore-pagination">
                         <button disabled={page===1} onClick={()=>setPage(p=>p-1)}
                                 style={{ color: brandBrown }} className="px-3 py-1 border disabled:opacity-50">Previous</button>
                         {[...Array(pages)].map((_,i)=>(
@@ -740,7 +859,7 @@ const ExplorePage: React.FC = () => {
 
 export default ExplorePage;
 export {
-    Header,
+    SiteHeader as Header,
     ProductCard,
     Footer,
     type Product,

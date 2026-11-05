@@ -105,16 +105,17 @@ const handleRemove = async (id: number) => {
 }
     // Display to UI
     return (
-        <div className="min-h-screen flex flex-col bg-white">
+        <div className="account-page min-h-screen flex flex-col bg-white">
             <Header />
 
-            <div className="container mx-auto py-6 px-4 flex-1">
-                <h1 style={{ color: brandBrown }} className="text-4xl font-medium mb-8">
-                    Wishlist
+            <div className="account-content container mx-auto py-6 px-4 flex-1">
+                <p className="eyebrow">Saved for later</p>
+                <h1 className="account-title">
+                    Your favorites
                 </h1>
 
                 {favoriteItems.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="explore-grid">
                         {favoriteItems.map((p) => (
                             <div key={p.id} className="space-y-2">
                                 <ProductCard product={p} initialFav />

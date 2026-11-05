@@ -114,11 +114,12 @@ const SellerHistoryPage: React.FC = () => {
     );
 
     return (
-        <div className="min-h-screen flex flex-col bg-white">
+        <div className="account-page min-h-screen flex flex-col bg-white">
             <Header />
 
-            <div className="container mx-auto py-6 px-4 pb-64 flex-1">
-                <h1 style={{ color: brandBrown }} className="text-4xl font-medium mb-8">My Account</h1>
+            <div className="account-content container mx-auto py-6 px-4 pb-64 flex-1">
+                <p className="eyebrow">Your activity</p>
+                <h1 className="account-title">My account</h1>
 
                 <div className="flex flex-col md:flex-row gap-8">
                     {/* Sidebar */}

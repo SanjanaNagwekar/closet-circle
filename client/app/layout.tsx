@@ -6,8 +6,8 @@ import { UserProvider } from '@auth0/nextjs-auth0/client'; // to wrap page with 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Closet Circle',
-  description: 'A fun and sustainable alternative to fast fashion',
+  title: 'Closet Circle | Community Clothing Marketplace',
+  description: 'Discover, buy, sell, and rent pre-loved clothing within a community.',
 }
 
 export default function RootLayout({

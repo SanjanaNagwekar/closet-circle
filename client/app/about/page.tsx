@@ -1,122 +1,106 @@
-'use client';
+import Link from 'next/link';
+import SiteFooter from '../components/SiteFooter';
+import SiteHeader from '../components/SiteHeader';
 
-import React from 'react';
-import Image from 'next/image';
-import { Header, Footer } from '../explore/ExplorePage';
-
-/* ============================================
-   BRAND COLORS
-============================================ */
-const brandNavy = '#284472';
-const brandLightPink = "#fdf5f3";
-const brandPink = "#FDEEEA";
-const brandLightBrown = "#efe4e1";
-const brandBrown = "#675a5e";
+const principles = [
+  {
+    number: '01',
+    title: 'Use what already exists',
+    copy: 'Great clothes should not disappear into the back of a closet. Resale and rental give each piece more chances to be worn.',
+  },
+  {
+    number: '02',
+    title: 'Make sharing feel simple',
+    copy: 'A circular closet only works when discovery, listing, and coordination are convenient enough to become everyday habits.',
+  },
+  {
+    number: '03',
+    title: 'Build around community',
+    copy: 'Closet Circle makes fashion more personal by connecting each item to the people who list, rent, and discover it.',
+  },
+];
 
 export default function AboutPage() {
-    const team = [
-        { name: 'Nina Wang', role: 'Full-Stack Engineer', photo: '/images/nina.png' },
-        { name: 'Olivia Joy Cacdac', role: 'Backend Engineer', photo: '/images/olivia.jpg' },
-        { name: 'Sanjana Nagwekar', role: 'Frontend Engineer', photo: '/images/sanjana.jpg' },
-        { name: 'Xiao Qi Lee', role: 'Database Designer', photo: '/images/xiao.png' },
-    ];
+  return (
+    <div className="page-shell">
+      <SiteHeader />
+      <main>
+        <section className="about-hero page-container">
+          <div className="about-hero__content">
+            <p className="eyebrow">Our purpose</p>
+            <h1 className="display-title">A better next chapter for every closet.</h1>
+            <p className="about-hero__lede">
+              Closet Circle was created around a simple idea: the most sustainable piece of clothing is often the one that is already here. We make it easier to discover, share, rent, and resell what is already in our communities.
+            </p>
+            <Link className="about-hero__link" href="/explore">See the community closet <span aria-hidden="true">↗</span></Link>
+          </div>
+          <div className="about-hero__motif" aria-hidden="true">
+            <span>discover</span><i /><span>share</span><i /><span>repeat</span>
+          </div>
+        </section>
 
-    const stats = [
-        { value: '10%', label: 'of global carbon emissions stem from garment production' },
-        { value: '92M', label: 'tonnes of clothing waste enter landfills each year' },
-        { value: '35%', label: 'of ocean microplastics originate from synthetic textiles' },
-        { value: '7×', label: 'average wears per garment before it\'s discarded' },
-    ];
+        <section className="about-origin">
+          <div className="page-container about-origin__inner">
+            <div className="about-origin__art" aria-hidden="true">
+              <div className="about-origin__ring"><span>wear it</span><span>share it</span><span>love it</span></div>
+            </div>
+            <div className="about-origin__copy">
+              <p className="eyebrow">Why it exists</p>
+              <h2 className="section-title">Because a full closet should create possibilities, not waste.</h2>
+              <p className="section-copy">
+                People often own pieces they still value but rarely wear. At the same time, finding a specific outfit for an event or trying a new style can lead to another short-lived purchase. Closet Circle brings those two realities together.
+              </p>
+              <p className="section-copy">
+                The product combines a secondhand marketplace with flexible rental workflows so a garment can move between closets instead of being forgotten or discarded. It is designed as one approachable place to list, browse, save, purchase, and coordinate rentals.
+              </p>
+            </div>
+          </div>
+        </section>
 
-    return (
-        <div className="min-h-screen flex flex-col" style={{ backgroundColor: brandLightPink }}>
-            <Header />
+        <section className="about-principles page-container">
+          <div className="about-principles__heading">
+            <p className="eyebrow">What guides the product</p>
+            <h2 className="section-title">Circular fashion should feel natural.</h2>
+          </div>
+          <div className="about-principles__grid">
+            {principles.map((principle) => (
+              <article key={principle.number}>
+                <span>{principle.number}</span>
+                <h3>{principle.title}</h3>
+                <p>{principle.copy}</p>
+              </article>
+            ))}
+          </div>
+        </section>
 
-            <main className="flex-1 w-full px-75 py-12 space-y-16">
-                {/* Hero */}
-                <section>
-                    <h1 style={{ color: brandBrown }} className="text-4xl font-bold mb-4">
-                        About Closet Circle
-                    </h1>
-                    <p className="text-xl text-gray-700">
-                        Closet Circle is a peer-to-peer wardrobe network that gives pre-loved clothing a second life. By connecting neighbors to borrow, rent, or purchase garments, we reduce the demand for new production and keep textiles circulating within communities.
-                    </p>
-                </section>
+        <section className="about-product">
+          <div className="page-container about-product__inner">
+            <div>
+              <p className="eyebrow">What it aims to solve</p>
+              <h2 className="section-title">One product for both sides of the closet.</h2>
+            </div>
+            <div className="about-product__paths">
+              <article>
+                <span>For the person searching</span>
+                <h3>Find something distinct without defaulting to new.</h3>
+                <p>Explore listings, narrow the selection, save favorites, and choose whether buying or renting makes the most sense.</p>
+              </article>
+              <article>
+                <span>For the person sharing</span>
+                <h3>Turn an underused wardrobe into an active closet.</h3>
+                <p>Create and manage listings, respond to rental requests, and track the items that have found their next wearer.</p>
+              </article>
+            </div>
+          </div>
+        </section>
 
-                {/* Meet the Team */}
-                <section
-                    className="p-8 rounded-lg"
-                    style={{
-                        backgroundColor: brandPink,
-                        border: `2px solid ${brandLightBrown}`,
-                    }}
-                >
-                    <h2 style={{ color: brandBrown }} className="text-3xl font-semibold mb-8 text-center">
-                        Meet the Team
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-12">
-                        {team.map(({ name, role, photo }) => (
-                            <div key={name} className="text-center">
-                                <Image
-                                    src={photo}
-                                    alt={name}
-                                    className="w-32 h-32 mx-auto rounded-full mb-4 object-cover"
-                                    height={128}
-                                    unoptimized
-                                    width={128}
-                                />
-                                <h3 style={{ color: brandBrown }} className="text-xl font-medium">
-                                    {name}
-                                </h3>
-                                <p className="italic text-lg text-gray-600">{role}</p>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-
-                {/* Mission & Vision */}
-                <section>
-                    <h2 style={{ color: brandBrown }} className="text-3xl font-semibold mb-4">
-                        Our Mission & Vision
-                    </h2>
-                    <p className="text-xl text-gray-700 mb-4 ml-8">
-                        Our mission is to minimize clothing waste by fostering a local-sharing community where garments are reused and treasured. We believe every piece has value beyond a single owner, and through shared wardrobes, we extend the life of textiles and reduce environmental impact.
-                    </p>
-                    <p className="text-xl text-gray-700 ml-8">
-                        Our vision is a future where wardrobes act as communal hubs, not silent closets. We see neighborhoods connected through style and sustainability—where collaborative consumption replaces disposable trends and each garment tells a lasting story.
-                    </p>
-                </section>
-
-                {/* Statistics Cards */}
-                <section>
-                    <h2 style={{ color: brandBrown }} className="text-3xl font-semibold mb-6">
-                        Fast Fashion Statistics
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                        {stats.map(({ value, label }) => (
-                            <div
-                                key={value}
-                                className="flex flex-col items-center p-6 rounded-lg shadow-sm"
-                                style={{ backgroundColor: '#ffffff' }}
-                            >
-                                <span style={{ color: brandBrown }} className="text-4xl font-bold">
-                                    {value}
-                                </span>
-                                <p className="mt-2 text-lg text-center text-gray-700">{label}</p>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-
-                {/* Impact Statement */}
-                <section>
-                    <p className="text-xl text-gray-700">
-                        By extending the lifecycle of each garment, Closet Circle conserves water, cuts carbon emissions, and curbs microplastic pollution. Each exchange strengthens local ties and supports a circular fashion economy—one outfit at a time.
-                    </p>
-                </section>
-            </main>
-
-            <Footer />
-        </div>
-    );
+        <section className="about-cta page-container">
+          <p className="eyebrow">See the idea in action</p>
+          <h2>Explore what is already in the circle.</h2>
+          <Link className="button" href="/explore">Browse the marketplace <span aria-hidden="true">→</span></Link>
+        </section>
+      </main>
+      <SiteFooter />
+    </div>
+  );
 }

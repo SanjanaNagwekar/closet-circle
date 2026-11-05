@@ -263,7 +263,6 @@ INSERT INTO Post(post_id, closet_id, owner_id, title, likes, description, date_p
 (32, 5, 'user6@email.com', 'Coach Cherry Print Bag', 6, 'Crafted of glovetanned leather featuring a cheerful cherry print detailed with glittery accents for a touch of sparkle, this hobo is based on a 2005 best-selling Coach design reimagined for today', '2025-02-23', 'new', 'Small', 14.99, 1, 0, '2025-06-05'),
 (33, 5, 'user7@email.com', 'Uniqlo Round Mini Bag', 6, 'The UNIQLO Round Ultra Mini Bag is a compact, water-repellent accessory crafted from 100% recycled nylon, designed to comfortably hold essentials like your phone, wallet, and keys. Its adjustable strap allows for versatile wear, making it a practical and eco-friendly choice for daily use', '2025-02-23', 'good', 'Small', 3.99, 1, 0, '2025-06-05'),
 (34, 5, 'user1@email.com', 'Men’s Leather Wallet', 6, 'Attractive men’s bifold wallet with coin pocket in a beautiful combination of dark blue and deep red leather', '2025-02-23', 'new', 'Small', 35.99, 0, 1, '2025-06-05'),
-(35, 5, 'user2@email.com', 'Diamond Star of David Necklace', 6, 'This understated diamond Star of David necklace can beautifully add to any outfit with its subtle shimmer. To enhance your look, layer your dainty diamond necklace with other chains or add a pop of color with a strand of beautiful gemstones', '2025-02-23', 'good', 'Small', 25.99, 0, 1, '2025-06-05'),
 (36, 5, 'user3@email.com', 'Silver Sunflower Topaz Earrings', 6, 'Petals of London Blue topaz gemstones dazzle within a hoop of lustrous silver in this enchanting nature-inspired look', '2025-02-23', 'worn', 'Small', 11.99, 0, 1, '2025-06-05'),
 (37, 5, 'user4@email.com', 'Cartier Bracelet', 6, 'Classic model, rose gold 750/1000, original fastening system with two functional screws. Comes with a screwdriver. Width 6.1 mm. Created in New York in 1969, this bracelet is a jewellery design icon: a close fitting, oval bracelet composed of two rigid arches, which is worn tightly on the wrist and removed using a special screwdriver', '2025-02-23', 'new', 'Large', 63.99, 0, 1, '2025-06-05'),
 (38, 5, 'user5@email.com', 'Women’s Hairpin Trigger Western Boots', 6, 'Step into a realm where the rustic charm of the West harmonizes with modern elegance. The Idyllwind Women’s Hairpin Trigger Western Boots are your gateway to a fashion statement born from timeless Western spirit reimagined for today', '2025-02-23', 'good', 'Large', 9.99, 1, 0, '2025-06-05'),
@@ -279,8 +278,7 @@ INSERT INTO Post(post_id, closet_id, owner_id, title, likes, description, date_p
 (48, 5, 'user1@email.com', 'Patagonia Kid’s Shorts', 6, 'These shorts have a soft elasticized waistband and a comfortable, quick-drying mesh liner. The body fabric is crafted of lightweight NetPlus® 100% post consumer recycled nylon faille made from recycled fishing nets to help reduce ocean plastic pollution', '2025-02-23', 'new', '4X-Large', 16.99, 0, 1, '2025-06-05'),
 (49, 5, 'user2@email.com', 'Nike’s Superfly Soccer Cleats', 6, 'Keep up the tempo in the Nike Adults’ Mercurial Superfly 10 Academy Soccer Cleats. NikeSkin uppers improve ball control, while cushioned insoles provide comfort. Wave-like traction patterns offer grip and let you make quick cuts, and Dynamic Fit collars deliver a secure fit.', '2025-02-23', 'good', 'Small', 12.99, 1, 0, '2025-06-05'),
 (50, 5, 'user3@email.com', 'V-Neck Jumpsuit', 6, 'This Cider Colorblock Zip-Up Jacket offers a playful take on Y2K fashion with its bold contrast panels and sporty aesthetic. Featuring a cropped fit, front zipper, and stand collar, it’s perfect for layering and making a statement in casual streetwear looks', '2025-02-23', 'excellent', '3X-Large', 10.99, 1, 0, '2025-06-05'),
-(51, 5, 'user4@email.com', 'Vintage Straight Japanese Selvedge Jean', 6, 'Our Japanese jeans are from a premium fabric with just a touch of stretch, so they’re comfortable and easy to wear, but still have all the quality detailing of our vintage-inspired Selvedge jeans', '2025-02-23', 'worn', '2X-Large', 17.99, 0, 1, '2025-06-05'),
-(52, 5, 'user5@email.com', 'Kid’s Grandma Halloween Costume', 6, 'This adorable baby Grandma is a great way to celebrate the season in the cutest way possible.', '2025-02-23', 'excellent', 'X-Small', 21.99, 0, 1, '2025-06-05');
+(51, 5, 'user4@email.com', 'Vintage Straight Japanese Selvedge Jean', 6, 'Our Japanese jeans are from a premium fabric with just a touch of stretch, so they’re comfortable and easy to wear, but still have all the quality detailing of our vintage-inspired Selvedge jeans', '2025-02-23', 'worn', '2X-Large', 17.99, 0, 1, '2025-06-05');
 
 INSERT INTO Post_Image(image_id, post_id, image_url) VALUES
 (1, 1, 'https://img.sonofatailor.com/images/customizer/product/extra-heavy-cotton/ss/Black.jpg'),
@@ -304,7 +302,7 @@ INSERT INTO Post_Image(image_id, post_id, image_url) VALUES
 (20, 20, 'https://s7.landsend.com/is/image/LandsEnd/550298_LEPP_LF_88Y?$lg$'),
 (21, 21, 'https://img.abercrombie.com/is/image/anf/KIC_156-4370-0288-900_prod1.jpg?policy=product-large'),
 (22, 22, 'https://media.neimanmarcus.com/f_auto,q_auto:low,ar_4:5,c_fill,dpr_2.0,w_418/01/nm_4981084_100189_m'),
-(23, 23, 'https://www.barbour.com/media/catalog/product/cache/76b3137555865caacddfe4231ec61fb4/L/W/LWX1478OL99_CARRYFORWARDa_flat.jpg'),
+(23, 23, 'https://hrd-live.cdn.scayle.cloud/images/1a860dc27b24ee705acfb6907d953d25.jpg?bg=ffffff&brightness=1&height=1230&quality=75&width=922'),
 (24, 24, 'https://www.allenedmonds.com/blob/product-images/39099/ec/40/06789/ec4006789_single_feed1000.jpg'),
 (25, 25, 'https://media.aldoshoes.com/v3/product/borelle/600/borelle_red_600_main_sq_gy_1200x1200.jpg'),
 (26, 26, 'https://www.samedelman.com/blob/product-images/99900/ec/02/20419/ec0220419_pair_feed1000.jpg'),
@@ -316,13 +314,12 @@ INSERT INTO Post_Image(image_id, post_id, image_url) VALUES
 (32, 32, 'https://coach.scene7.com/is/image/Coach/cy936_b4cah_a0?$mobileProductV3$'),
 (33, 33, 'https://preview.redd.it/are-uniqlo-round-mini-shoulder-bags-look-good-on-men-uniqlo-v0-o2nrw24qqumc1.png?width=980&format=png&auto=webp&s=c8e023cae71cdf36354a9cff8348644a625872c4'),
 (34, 34, 'https://www.antorini.com/cdn/shop/products/blue-wallet_800x.jpg?v=1574930029'),
-(35, 35, 'https://www.gorjana.com/cdn/shop/files/251-117-185-G.jpg?v=1735591375&width=1080&height=1350&crop=center'),
 (36, 36, 'https://image.brilliantearth.com/media/thumbnail/ed/3b/ed3b3c5a4a11444bd99e90ac4ea01b0f.jpg'),
 (37, 37, 'https://int.cartier.com/content/dam/rcq/car/U7/eS/1R/TK/S6/ar/Sj/gq/ZT/gu/vg/U7eS1RTKS6arSjgqZTguvg.png.scale.600.high.love-bracelet-classic-model-rose-gold.png'),
 (38, 38, 'https://www.bootbarn.com/dw/image/v2/BCCF_PRD/on/demandware.static/-/Sites-master-product-catalog-shp/default/dw75287d12/images/655/2000400655_101_P1.JPG?sw=1500&sh=1500&sm=fit'),
 (39, 39, 'https://www.reef.com/cdn/shop/files/CJ4347_RS-900x900-831cf75.jpg?v=1738099610&width=640'),
 (40, 40, 'https://nisolo.com/cdn/shop/files/WF-0009-BLK_Pair_Front.jpg?v=173993538'),
-(41, 41, 'https://www.rei.com/media/f21da3f8-0be2-4e52-ad37-55c526e7d1c0?size=2000'),
+(41, 41, 'https://images.unsplash.com/photo-1636363285075-5494f25c78fd?auto=format&fit=crop&w=1200&q=80'),
 (42, 42, 'https://columbia.scene7.com/is/image/ColumbiaSportswear2/2089931_608_f_pu?wid=768&hei=806&v=1746692496'),
 (43, 43, 'https://dms.deckers.com/ugg/image/upload/f_auto,q_40,dpr_2/b_rgb:f4f2ee/w_966/v1724793854/1147090-TARR_1.png?_s=RAABAB0'),
 (44, 44, 'https://stetson.com/cdn/shop/products/11-098-0202-2010-BU_Blue_1_large.jpg?v=1674678050'),
@@ -332,8 +329,7 @@ INSERT INTO Post_Image(image_id, post_id, image_url) VALUES
 (48, 48, 'https://www.patagonia.com/dw/image/v2/BDJB_PRD/on/demandware.static/-/Sites-patagonia-master/default/dw98882653/images/hi-res/67036_ABNB.jpg?sw=512&sh=512&sfrm=png&q=95&bgcolor=f3f4ef'),
 (49, 49, 'https://academy.scene7.com/is/image/academy/21322954?$pdp-mobile-gallery-ng$'),
 (50, 50, 'https://img1.shopcider.com/product/1713355295000-jkjXfk.jpg?x-oss-process=image/resize,w_1400,m_lfit/quality,Q_80/interlace,1'),
-(51, 51, 'https://www.toddsnyder.com/cdn/shop/files/JE214758_WASHEDINDIGO_FEB_1794_R_1200x.jpg?v=1744822593'),
-(52, 52, 'https://external-preview.redd.it/eH2S59xRlKz49uZSWn3JZnq-wiy6eeh-C3KXdYLTrh8.jpg?auto=webp&s=8703c60f76ad42e09544ebe97a3624036681b37f');
+(51, 51, 'https://www.toddsnyder.com/cdn/shop/files/JE214758_WASHEDINDIGO_FEB_1794_R_1200x.jpg?v=1744822593');
 
 INSERT INTO Post_Category (post_id, category_id) VALUES
 (1, 2),
@@ -447,8 +443,6 @@ INSERT INTO Post_Category (post_id, category_id) VALUES
 (34, 9),
 (34, 10),
 (34, 12),
-(35, 1),
-(35, 9),
 (36, 1),
 (36, 9),
 (36, 13),
@@ -495,12 +489,7 @@ INSERT INTO Post_Category (post_id, category_id) VALUES
 (50, 13),
 (51, 2),
 (51, 5),
-(51, 13),
-(52, 3),
-(52, 4),
-(52, 5),
-(52, 11),
-(52, 15);
+(51, 13);
 
 INSERT INTO Transactions (email, status, purchased_date) VALUES  
 ('user2@email.com', 'purchased', '2025-04-22 14:52:00'),  

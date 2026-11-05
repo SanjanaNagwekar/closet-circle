@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { apiUrl } from '@/lib/api';
+import SiteHeader from '../components/SiteHeader';
+import SiteFooter from '../components/SiteFooter';
 
 /* ============================================
    BRAND COLORS
@@ -252,11 +254,12 @@ const CartPage: React.FC = () => {
     }, [user]);
 
     return (
-        <div className="min-h-screen flex flex-col bg-white">
-            <Header />
+        <div className="account-page cart-page min-h-screen flex flex-col bg-white">
+            <SiteHeader />
 
-            <main className="container mx-auto py-6 px-4 flex-1">
-                <h1 className="text-2xl font-semibold mb-6" style={{ color: brandBrown }}>Your Cart</h1>
+            <main className="account-content container mx-auto py-6 px-4 flex-1">
+                <p className="eyebrow">Ready when you are</p>
+                <h1 className="account-title">Your cart</h1>
 
                 {message && (
                     <p
@@ -287,7 +290,7 @@ const CartPage: React.FC = () => {
                             {cartItems.map((item) => (
                                 <div
                                     key={item.id}
-                                    className="flex items-center gap-4 border p-4 rounded"
+                                    className="cart-item flex items-center gap-4 border p-4 rounded"
                                 >
                                     {/* display first image only*/}
                                     <div className="flex gap-2" style={{ color: brandBrown }}>
@@ -335,7 +338,7 @@ const CartPage: React.FC = () => {
                         </div>
 
                         {/* Summary Section */}
-                        <div className="p-4 border rounded">
+                        <div className="cart-summary p-4 border rounded">
                             <h2 className="text-lg font-medium mb-4" style={{ color: brandBrown }}>Order Summary</h2>
                             <div className="flex justify-between mb-2" style={{ color: brandBrown }}>
                                 <span>Subtotal</span>
@@ -381,6 +384,7 @@ const CartPage: React.FC = () => {
                     </div>
                 )}
             </main>
+            <SiteFooter />
         </div>
     );
 };

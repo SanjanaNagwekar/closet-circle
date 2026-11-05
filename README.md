@@ -8,14 +8,14 @@ Users can create profiles, browse and list clothing, save favorites, manage a sh
 
 [![Closet Circle marketplace homepage](documentation/closet-circle-preview.png)](https://closet-circle-self.vercel.app)
 
-*Open the [live UI demo](https://closet-circle-self.vercel.app) to explore the marketplace.*
+*Open the [live application](https://closet-circle-self.vercel.app) to explore the marketplace.*
 
 ## Project Links
 
-- **Live UI Demo:** [closet-circle-self.vercel.app](https://closet-circle-self.vercel.app)
+- **Live Application:** [closet-circle-self.vercel.app](https://closet-circle-self.vercel.app)
 - **Interactive Figma Prototype:** [View the Closet Circle prototype](https://www.figma.com/proto/k5AJqFEcWgS2aVGf8On20e/Closet-Circle?node-id=37-9388&starting-point-node-id=35%3A2594&t=XDBsDJr5WX6pSzP0-1)
 
-> **Demo note:** The Vercel deployment is intended as a frontend/UI demonstration. The original application uses a local Express + SQLite backend, so some data-mutating features in the hosted demo, such as cart, favorites, and transaction workflows, may be limited.
+> **Live deployment:** The Vercel frontend connects to the Railway-hosted Express API and persistent SQLite storage. Seeded browsing, Auth0 sign-in, profiles, favorites, cart, listings, checkout, and rental workflows are available in the hosted application. Checkout is a simulated marketplace workflow and does not process real payments.
 
 ## Tech Stack
 
@@ -51,9 +51,9 @@ Users can create profiles, browse and list clothing, save favorites, manage a sh
 
 Closet Circle follows a client-server architecture:
 
-- The **Next.js frontend** provides the marketplace UI and authentication flow.
-- The **Node.js/Express backend** exposes REST API endpoints for users, listings, profiles, carts, transactions, and marketplace data.
-- **SQLite** stores users, listing states, categories, transactions, favorites, and related application data.
+- The **Next.js frontend** is deployed on Vercel and provides the marketplace UI, Auth0 session flow, and a same-origin proxy for authenticated API requests.
+- The **Node.js/Express backend** is deployed on Railway and exposes REST API endpoints for users, listings, profiles, carts, transactions, rentals, and marketplace data.
+- **SQLite** stores users, listing states, categories, transactions, rental requests, favorites, and related application data on a persistent Railway volume.
 - Uploaded listing images are stored alongside the database on the backend's persistent volume.
 - **Auth0** provides user authentication.
 

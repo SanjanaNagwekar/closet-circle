@@ -215,9 +215,9 @@ function RentalsPage() {
   const rentals = activeView === 'buyer' ? buyerRentals : sellerRentals;
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#fafafa]">
+    <div className="account-page flex min-h-screen flex-col bg-[#fafafa]">
       <Header />
-      <main className="container mx-auto flex-1 px-4 py-8">
+      <main className="account-content container mx-auto flex-1 px-4 py-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-[#675a5e]">Rental dashboard</p>
