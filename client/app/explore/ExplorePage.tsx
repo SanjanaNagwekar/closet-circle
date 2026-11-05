@@ -177,74 +177,77 @@ interface ProductCardProps {
     product: Product;
     /** start filled if true */
     initialFav?: boolean;
-    setExplorePageItems: React.Dispatch<React.SetStateAction<Product[]>>;
-    userEmail?: string | null;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false, setExplorePageItems, userEmail}) => {
+const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) => {
     const { user } = useUser();  
     const router = useRouter(); 
     const [fav, setFav] = useState(initialFav);
     const [open, setOpen] = useState(false);
     const [i,   setI]     = useState(0);
+    const [isAdding, setIsAdding] = useState(false);
+    const [isUpdatingFavorite, setIsUpdatingFavorite] = useState(false);
+    const [feedback, setFeedback] = useState('');
     const ref= useRef<HTMLDivElement|null>(null);
 
-    const handleAction = (type: 'forSale' | 'forRent') => {
+    useEffect(() => {
+        setFav(initialFav);
+    }, [initialFav]);
+
+    const handleAction = async (type: 'forSale' | 'forRent') => {
         if (!user) {
-            // Redirect to sign-in/register page if user is not signed in
             router.push('/api/auth/login');
             return;
         }
 
-        // Call addToCart if the user is signed in
-        addToCart(product, type, user, setExplorePageItems);
-    };
-
-    const addToCart = async (product: Product, type: 'forSale' | 'forRent', user: any, setExplorePageItems: React.Dispatch<React.SetStateAction<Product[]>>) => {
+        setIsAdding(true);
+        setFeedback('');
         try {
-            const transactionIdResponse = await fetch(apiUrl(`/api/profile/cart/id?email=${user?.email}`))
-
-            const transactionIdData = await transactionIdResponse.json();
-            if (!transactionIdResponse.ok || !transactionIdData.transactionId) {
-                console.error('Failed to retrieve transaction ID:', transactionIdData.message || transactionIdData.error);
-                alert('Failed to retrieve transaction ID. Please try again.');
-                return;
-            }
-
-            const response = await fetch(apiUrl('/api/profile/cart/addItem'), {
-                method: "PUT",
+            const response = await fetch(apiUrl('/api/profile/cart/items'), {
+                method: 'POST',
                 headers: {
-                    "Content-Type": "application/json",
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    transactionId: transactionIdData.transactionId,
                     postId: product.id,
+                    intent: type === 'forRent' ? 'rental' : 'purchase',
                 }),
             });
-            
             const data = await response.json();
-
-            if (!response.ok) {
-                console.error(`Failed to add item to cart (${type}):`, data.error);
-                alert(`Failed to add item to cart. Please try again.`);
-                return;
-            }
-
-            // Update the product's availability in the frontend state
-            setExplorePageItems((prevItems) =>
-                prevItems.map((item) =>
-                    item.id === product.id
-                        ? { ...item, [type]: false } // Update forSale or forRent to false
-                        : item
-                )
-            );
-
-            alert(`Item added to cart successfully!`);
+            setFeedback(response.ok ? data.message : data.error || 'Could not add this item');
         } catch (error) {
-            console.error(`Error adding item to cart (${type}):`, error);
-            alert("An error occured. Please try again.");
+            setFeedback('Could not reach the server. Please try again.');
+        } finally {
+            setIsAdding(false);
         }
-    }
+    };
+
+    const toggleFavorite = async () => {
+        if (!user) {
+            router.push('/api/auth/login');
+            return;
+        }
+
+        setIsUpdatingFavorite(true);
+        setFeedback('');
+        try {
+            const response = await fetch(apiUrl('/api/profile/wishlist'), {
+                method: fav ? 'DELETE' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ post_id: product.id }),
+            });
+            if (response.ok) {
+                setFav(!fav);
+            } else {
+                const data = await response.json();
+                setFeedback(data.error || 'Could not update this favorite');
+            }
+        } catch (error) {
+            setFeedback('Could not reach the server. Please try again.');
+        } finally {
+            setIsUpdatingFavorite(false);
+        }
+    };
 
     /* click-away */
     useEffect(() => {
@@ -272,27 +275,11 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false, s
             </Link>
 
             {/* favourite heart */}
-            <button onClick={async () => {
-                        if (fav) { // Remove from wishlist
-                            const response = await fetch(apiUrl('/api/profile/wishlist'), {
-                                method: 'DELETE',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ email: userEmail, post_id: product.id }),
-                            });
-                            if (response.ok) setFav(false);
-                            else alert("Failed to remove from wishlist.");
-                        } else {  // Add to wishlist
-                            const response = await fetch(apiUrl('/api/profile/wishlist'), {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ name: "Favorites", email: userEmail, post_id: product.id }),
-                            });
-                            if (response.ok) setFav(true);
-                            else alert("Failed to add to wishlist.");
-                        }
-                    }}
+            <button onClick={toggleFavorite}
+                    aria-label={fav ? `Remove ${product.title} from favorites` : `Add ${product.title} to favorites`}
                     className="absolute top-2 right-2 z-[55] w-8 h-8 rounded-full bg-white
-                         flex items-center justify-center"
+                         flex items-center justify-center disabled:opacity-60"
+                    disabled={isUpdatingFavorite}
                     style={{ color: brandNavy }}>
                 <svg width="18" height="18" viewBox="0 0 24 24"
                      fill={fav ? 'currentColor' : 'none'}
@@ -356,17 +343,20 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false, s
                         ? <div className="bg-gray-300 text-center py-1 px-3 rounded-sm w-full text-sm">Unavailable</div>
                         : <>
                             {product.forSale &&
-                                <button style={{ backgroundColor: brandBrown }} className="text-white text-sm py-1 px-3 rounded-sm flex-1"
+                                <button style={{ backgroundColor: brandBrown }} className="text-white text-sm py-1 px-3 rounded-sm flex-1 disabled:opacity-60"
+                                disabled={isAdding}
                                 onClick={() => handleAction('forSale')}>
                                     Buy for ${product.price}
                                 </button>}
                             {product.forRent &&
-                                <button style={{ color: brandBrown }} className="border border-gray-400 text-sm py-1 px-3 rounded-sm flex-1"
+                                <button style={{ color: brandBrown }} className="border border-gray-400 text-sm py-1 px-3 rounded-sm flex-1 disabled:opacity-60"
+                                disabled={isAdding}
                                 onClick={() => handleAction('forRent')}>
                                     Rent for ${product.price} Per Day
                                 </button>}
                         </>}
                 </div>
+                {feedback && <p className="mt-2 text-xs text-[#675a5e]" role="status">{feedback}</p>}
             </div>
 
             {/* dropdown */}
@@ -529,15 +519,18 @@ const ExplorePage: React.FC = () => {
     const [sort,      setSort]   = useState('Most Popular');
     const [page,      setPage]   = useState(1);
     const perPage = 9;
-    const [unavailablePostIDs, setUnavailableArr] = useState<Number[]>([]);
-
-    // convert strings to numbers so can be used for filtering
-    const price = [priceInput[0] === '' ? 0 : Number(priceInput[0]), priceInput[1] === '' ? 0 : Number(priceInput[1]),];
+    const price = useMemo(
+        () => [
+            priceInput[0] === '' ? 0 : Number(priceInput[0]),
+            priceInput[1] === '' ? 0 : Number(priceInput[1]),
+        ],
+        [priceInput],
+    );
 
     // Fetch wishlist items for user
     useEffect(() => {
         if (!user) return;
-        fetch(apiUrl(`/api/profile/wishlist?email=${user.email}`))
+        fetch(apiUrl('/api/profile/wishlist'))
             .then(res => res.json())
             .then(data => {
                 if (Array.isArray(data.wishlist)) {
@@ -552,39 +545,11 @@ const ExplorePage: React.FC = () => {
             });
     }, [user]);
 
-    /* fetch unavailable items */
-    useEffect(() => {
-        console.log("in use effect for sold posts")
-        fetch(apiUrl('/api/all-unavailable'))
-                .then((response) => response.json())
-                .then((data) => {
-                    console.log('Fetched sold posts: ', data);
-           
-                    if (!Array.isArray(data.orders)) {
-                        console.error("Invalid data format:", data);
-                        return;
-                    }
-   
-                    // IDs of unavailable items (to be marked as sold)
-                    setUnavailableArr(data.orders.map((item: { post_id: any; }) => item.post_id));
-                    console.log("unavailable post ids first: " + unavailablePostIDs);
-                })
-                .catch((error) => console.log('Error fetching ordered items: ', error));
-    }, []);
-
-
     // Fetch products from backend
     useEffect(() => {
-        console.log("in use effect")
         fetch(apiUrl('/api/posts-all'))
-            .then((response) => {
-                console.log("Response status: ", response.status);
-                return response.json();
-            })
+            .then((response) => response.json())
             .then((data) => {
-                console.log('Fetched posts: ', data);
-                console.log("unavailable post ids: " + unavailablePostIDs);
-
                 if (!data.posts || !Array.isArray(data.posts)) {
                     console.error("Invalid data format:", data);
                     setExplorePageItems([]);
@@ -598,7 +563,7 @@ const ExplorePage: React.FC = () => {
                     price: post.price ?? 20, // Default price if not provided
                     forSale: post.sflag === 1,
                     forRent: post.bflag === 1,
-                    sold: unavailablePostIDs.includes(post.post_id), //post.sold ?? false,
+                    sold: false,
                     type: getUIType(post.categories), //post.type ?? '',
                     audience: getUIAudience(post.categories), //post.audience ?? '',
                     colors: getUIColors(post.categories), //post.colors ?? [],
@@ -614,17 +579,7 @@ const ExplorePage: React.FC = () => {
                 }));
 
 
-                console.log("transformed items: ", transformed);
-                // setExplorePageItems(transformed);
-                setExplorePageItems((prevItems) => {
-                    // Compare the new items with the previous items to ensure a change
-                    if (JSON.stringify(prevItems) !== JSON.stringify(transformed)) {
-                        console.log("state updated withh new items")
-                        return transformed;
-                    }
-                    console.log("state is the same")
-                    return prevItems;
-                })
+                setExplorePageItems(transformed);
             })
             .catch((error) => {
                 console.log('Error fetching explore page items: ', error);
@@ -633,7 +588,7 @@ const ExplorePage: React.FC = () => {
                     .then((fallbackItems: Product[]) => setExplorePageItems(fallbackItems))
                     .catch((fallbackError) => console.error('Error loading fallback explore items: ', fallbackError));
             });
-    }, [unavailablePostIDs]);
+    }, []);
 
     /* filter logic */
     const filtered = useMemo(()=> explorePageItems.filter((p) => {
@@ -769,7 +724,13 @@ const ExplorePage: React.FC = () => {
                     <h2 className="text-2xl font-semibold mb-4">Shop Products</h2>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {items.map(p=><ProductCard key={p.id} product={p} setExplorePageItems={setExplorePageItems} initialFav={wishlistIds.includes(p.id)} userEmail={user?.email} />)}
+                        {items.map((product) => (
+                            <ProductCard
+                                initialFav={wishlistIds.includes(product.id)}
+                                key={product.id}
+                                product={product}
+                            />
+                        ))}
                     </div>
 
                     {/* pagination */}

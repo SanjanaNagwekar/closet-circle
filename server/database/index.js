@@ -123,6 +123,46 @@ async function seedDatabase(db) {
     }
 }
 
+async function normalizePendingCarts(db) {
+    await exec(db, 'BEGIN IMMEDIATE;');
+    try {
+        await exec(db, `
+            INSERT OR IGNORE INTO Transaction_Listing (
+                transaction_id, post_id, intent, unit_price
+            )
+            SELECT (
+                       SELECT MIN(KeepTransaction.transaction_id)
+                       FROM Transactions KeepTransaction
+                       WHERE KeepTransaction.email = PendingTransaction.email
+                         AND KeepTransaction.status = 'pending'
+                   ),
+                   PendingListing.post_id,
+                   PendingListing.intent,
+                   PendingListing.unit_price
+            FROM Transaction_Listing PendingListing
+            JOIN Transactions PendingTransaction USING (transaction_id)
+            WHERE PendingTransaction.status = 'pending';
+
+            DELETE FROM Transactions
+            WHERE status = 'pending'
+              AND transaction_id <> (
+                  SELECT MIN(KeepTransaction.transaction_id)
+                  FROM Transactions KeepTransaction
+                  WHERE KeepTransaction.email = Transactions.email
+                    AND KeepTransaction.status = 'pending'
+              );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_pending_user
+                ON Transactions(email)
+                WHERE status = 'pending';
+        `);
+        await exec(db, 'COMMIT;');
+    } catch (error) {
+        await exec(db, 'ROLLBACK;');
+        throw error;
+    }
+}
+
 async function initializeDatabase(db, { seed = false } = {}) {
     await exec(db, `
         PRAGMA foreign_keys = ON;
@@ -132,6 +172,7 @@ async function initializeDatabase(db, { seed = false } = {}) {
     `);
     await applyMigrations(db);
     if (seed) await seedDatabase(db);
+    await normalizePendingCarts(db);
 }
 
 async function checkDatabase(db) {

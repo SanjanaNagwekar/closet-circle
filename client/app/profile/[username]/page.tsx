@@ -485,9 +485,7 @@ export default function ProfilePageByUsername() {
                                     username:  '',
                                 }
                             };
-                            return <ProductCard key={p.id} product={withoutUser} setExplorePageItems={function (value: React.SetStateAction<Product[]>): void {
-                                throw new Error('Function not implemented.');
-                            } } />;
+                            return <ProductCard key={p.id} product={withoutUser} />;
                         })}
                     </div>
 

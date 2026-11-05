@@ -6,7 +6,18 @@ module.exports = (db, { requireUser }) => {
     router.get("/posts", (req, res) => {
         console.log("getting posts");
         const { ownerID } = req.query;
-        const queryPosts = `SELECT * FROM Post WHERE owner_id = ? AND listing_status = 'published'`;
+        const queryPosts = `
+            SELECT *
+            FROM Post
+            WHERE owner_id = ? AND listing_status = 'published'
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM Transaction_Listing SoldListing
+                  JOIN Transactions SoldTransaction USING (transaction_id)
+                  WHERE SoldListing.post_id = Post.post_id
+                    AND SoldListing.intent = 'purchase'
+                    AND SoldTransaction.status = 'purchased'
+              )`;
         const queryImages = `SELECT image_url FROM Post_Image WHERE post_id = ?`;
         const queryPostCategories = `SELECT category_id FROM Post_Category WHERE post_id = ?`;
 
@@ -167,189 +178,11 @@ module.exports = (db, { requireUser }) => {
     })
     
 
-    // GET user's cart
-    router.get("/cart", ...requireUser, (req, res) => {
-        const email = req.currentUser.email;
-        const queryTransaction = `SELECT transaction_id FROM Transactions WHERE email = ? AND status = 'pending'`;
-        const queryCart = `SELECT post_id FROM Transaction_Listing WHERE transaction_id = ?`
-        const queryPosts = `SELECT title, price, bflag, sflag, item_condition, size FROM Post WHERE post_id = ?`
-        const queryPostImage = `SELECT image_url FROM Post_Image WHERE post_id = ?`
-
-        db.get(queryTransaction, [email], (err, transaction) => {
-            if (err) {
-                console.error(err.message);
-                res.status(500).json({ error: err.message });
-                return;
-            }
-
-            if (!transaction) {
-                // no pending transaction found
-                res.json({ cart: [] });
-                return;
-            }
-
-            const transactionId = transaction.transaction_id;
-
-            // Find all post IDs in the transaction
-            db.all(queryCart, [transactionId], (err, cartItems) => {
-                if (err) {
-                    console.error(err.message);
-                    res.status(500).json({ error: err.message });
-                    return;
-                }
-
-                if (!cartItems || cartItems.length === 0) {
-                    // No items in the cart
-                    res.json({ cart: [] });
-                    return;
-                }
-
-                // Fetch details for each post in the cart
-                const cartDetailsPromises = cartItems.map((item) => {
-                    return new Promise((resolve, reject) => {
-                        db.get(queryPosts, [item.post_id], (err, post) => {
-                            if (err) {
-                                reject(err);
-                                return;
-                            }
-
-                            if (!post) {
-                                resolve(null);
-                                return;
-                            }
-
-                            // Fetch post images
-                            db.all(queryPostImage, [item.post_id], (err, images) => {
-                                if (err) {
-                                    reject(err);
-                                    return;
-                                }
-
-                                post.images = images.map((img) => img.image_url);
-                                resolve({ ...post, post_id: item.post_id });
-                            });
-                        });
-                    });
-                });
-
-                // Resolve all promises and return thte cart details
-                Promise.all(cartDetailsPromises)
-                    .then((cartDetails) => {
-                        // Filer out any null results
-                        const filteredCartDetails = cartDetails.filter((item) => item !== null);
-                        res.json({ transId: transactionId, cart: filteredCartDetails });
-                    })
-                    .catch((error) => {
-                        console.error(error.message);
-                        res.status(500).json({ error: error.message });
-                    })
-            })
-        })
-    })
-
-    // PUT cart status
-    router.put("/checkout", ...requireUser, (req, res) => {
-        const { transactionId } = req.query;
-        const email = req.currentUser.email;
-        const checkoutQuery = `
-            UPDATE Transactions SET status = 'purchased'
-            WHERE transaction_id = ? AND email = ? AND status = 'pending'`;
-        
-        db.run(checkoutQuery, [transactionId, email], function (err) {
-            if (err) {
-                console.error(err.message);
-                res.status(500).json({ error: "Failed to checkout" });
-                return;
-            }
-
-            if (this.changes === 0) {
-                res.status(404).json({ error: "Pending transaction not found" });
-                return;
-            }
-
-            res.json({ success: true, message: "Checkout completed" });
-        })
-    })
-
-    router.put("/cart/addItem", ...requireUser, (req, res) => {
-        const { transactionId, postId } = req.body;
-        const email = req.currentUser.email;
-        const addItemQuery = `
-            INSERT INTO Transaction_Listing (transaction_id, post_id)
-            SELECT transaction_id, ? FROM Transactions
-            WHERE transaction_id = ? AND email = ? AND status = 'pending'`;
-
-        db.run(addItemQuery, [postId, transactionId, email], function (err) {
-            if (err) {
-                console.error(err.message);
-                res.status(500).json({ error: "Failed to add item to cart" });
-                return;
-            }
-
-            if (this.changes === 0) {
-                res.status(404).json({ error: "Pending transaction not found" });
-                return;
-            }
-
-            res.json({ success: true, message: "Item added to cart" });
-        })
-    })
-
-    // GET transaction id
-    router.get("/cart/id", ...requireUser, (req, res) => {
-        const email = req.currentUser.email;
-        const query = `SELECT transaction_id FROM Transactions WHERE email = ? AND status = 'pending'`;
-
-        db.get(query, [email], (err, row) => {
-            if (err) {
-                console.error(err.message);
-                res.status(500).json({ error: "Failed to retrieve transaction ID" });
-                return;
-            }
-
-            if (!row) {
-                // no pending transaction found
-                res.json({ transactionId: null, message: "No pending transaction found" });
-                return;
-            }
-
-            res.json({ transactionId: row.transaction_id });
-        })
-    })
-
-    // DELETE cart item
-    router.delete("/cart/item", ...requireUser, (req, res) => {
-        const { transactionId, postId } = req.body;
-        const email = req.currentUser.email;
-        const deleteQuery = `
-            DELETE FROM Transaction_Listing
-            WHERE transaction_id = ? AND post_id = ?
-            AND EXISTS (
-                SELECT 1 FROM Transactions
-                WHERE transaction_id = ? AND email = ? AND status = 'pending'
-            )`;
-
-        db.run(deleteQuery, [transactionId, postId, transactionId, email], function (err) {
-            if (err) {
-                console.error(err.message);
-                res.status(500).json({ error: "Failed to remove item from cart" });
-                return;
-            }
-
-            if (this.changes === 0) {
-                res.status(404).json({ error: "Cart item not found" });
-                return;
-            }
-
-            res.json({ success: true, message: "Item removed from cart" });
-        })
-    })
-
     // GET purchased transactions for a user
     router.get("/order-history/purchased", ...requireUser, (req, res) => {
         const email = req.currentUser.email;
         const queryTransaction = `SELECT transaction_id, purchased_date FROM Transactions WHERE email = ? AND status = 'purchased'`;
-        const queryListings = `SELECT post_id FROM Transaction_Listing WHERE transaction_id = ?`
+        const queryListings = `SELECT post_id, intent, unit_price FROM Transaction_Listing WHERE transaction_id = ?`
         const queryPosts = `SELECT title, price, sflag, bflag FROM Post WHERE post_id = ?`
         const queryPostImage = `SELECT image_url FROM Post_Image WHERE post_id = ?`
 
@@ -405,7 +238,13 @@ module.exports = (db, { requireUser }) => {
                                         }
 
                                         post.images = images.map((img) => img.image_url);
-                                        resolve({ ...post, post_id: item.post_id, purchased_date: transaction.purchased_date });
+                                        resolve({
+                                            ...post,
+                                            post_id: item.post_id,
+                                            price: item.unit_price ?? post.price,
+                                            intent: item.intent,
+                                            purchased_date: transaction.purchased_date,
+                                        });
                                     });
                                 });
                             });
@@ -436,7 +275,7 @@ module.exports = (db, { requireUser }) => {
     router.get("/seller-history", (req, res) => {
         const { email } = req.query;
         const queryTransaction = `SELECT transaction_id, purchased_date FROM Transactions WHERE status = 'purchased'`;
-        const queryListings = `SELECT post_id FROM Transaction_Listing WHERE transaction_id = ?`
+        const queryListings = `SELECT post_id, intent, unit_price FROM Transaction_Listing WHERE transaction_id = ?`
         const queryPosts = `SELECT title, price, sflag, bflag FROM Post WHERE post_id = ? AND owner_id = ?`
         const queryPostImage = `SELECT image_url FROM Post_Image WHERE post_id = ?`
 
@@ -490,7 +329,13 @@ module.exports = (db, { requireUser }) => {
                                         }
 
                                         post.images = images.map((img) => img.image_url);
-                                        resolve({ ...post, post_id: item.post_id, purchased_date: transaction.purchased_date });
+                                        resolve({
+                                            ...post,
+                                            post_id: item.post_id,
+                                            price: item.unit_price ?? post.price,
+                                            intent: item.intent,
+                                            purchased_date: transaction.purchased_date,
+                                        });
                                     });
                                 });
                             });
@@ -520,13 +365,21 @@ module.exports = (db, { requireUser }) => {
 
         // GET wishlist/favorite items
         router.get("/wishlist", ...requireUser, (req, res) => {
-            console.log("getting wishlist");
             const email = req.currentUser.email;
             const queryWishlist = `SELECT W.*, P.*, U.first_name, U.last_name
                                    FROM Wishlist W, Post P, User U
                                    WHERE W.post_id = P.post_id
                                    AND P.owner_id = U.email
-                                   AND W.email = ?;`;
+                                   AND W.email = ?
+                                   AND P.listing_status = 'published'
+                                   AND NOT EXISTS (
+                                       SELECT 1
+                                       FROM Transaction_Listing SoldListing
+                                       JOIN Transactions SoldTransaction USING (transaction_id)
+                                       WHERE SoldListing.post_id = P.post_id
+                                         AND SoldListing.intent = 'purchase'
+                                         AND SoldTransaction.status = 'purchased'
+                                   );`;
 
             const queryImages = `SELECT image_url FROM Post_Image WHERE post_id = ?`;
             const queryPostCategories = `SELECT category_id FROM Post_Category WHERE post_id = ?`;
@@ -574,15 +427,46 @@ module.exports = (db, { requireUser }) => {
         // POST add to wishlist
         router.post("/wishlist", ...requireUser, (req, res) => {
             const email = req.currentUser.email;
-            const { post_id } = req.body;
-            const query = `INSERT INTO Wishlist (email, post_id) VALUES (?, ?)`;
-            db.run(query, [email, post_id], function(err) {
-                if (err) {
-                    console.error(err.message);
-                    res.status(500).json({ error: err.message });
+            const postId = Number(req.body.post_id);
+            const availableListing = `
+                SELECT post_id
+                FROM Post
+                WHERE post_id = ?
+                  AND owner_id <> ?
+                  AND listing_status = 'published'
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM Transaction_Listing SoldListing
+                      JOIN Transactions SoldTransaction USING (transaction_id)
+                      WHERE SoldListing.post_id = Post.post_id
+                        AND SoldListing.intent = 'purchase'
+                        AND SoldTransaction.status = 'purchased'
+                  )`;
+            db.get(availableListing, [postId, email], (findError, listing) => {
+                if (findError) {
+                    res.status(500).json({ error: 'Failed to add favorite' });
                     return;
                 }
-                res.json({ success: true, message: "Item added successfully" });
+                if (!listing) {
+                    res.status(409).json({ error: 'This listing cannot be added to favorites' });
+                    return;
+                }
+
+                db.run(
+                    `INSERT OR IGNORE INTO Wishlist (email, post_id) VALUES (?, ?)`,
+                    [email, postId],
+                    function onInsert(insertError) {
+                        if (insertError) {
+                            console.error(insertError.message);
+                            res.status(500).json({ error: 'Failed to add favorite' });
+                            return;
+                        }
+                        res.status(this.changes === 1 ? 201 : 200).json({
+                            success: true,
+                            message: 'Item added to favorites',
+                        });
+                    },
+                );
             });
         });
 
@@ -597,7 +481,7 @@ module.exports = (db, { requireUser }) => {
                     res.status(500).json({ error: err.message });
                     return;
                 }
-                res.json({ success: true, message: "Item removed from wishlist" });
+                res.status(204).end();
             });
         });
 

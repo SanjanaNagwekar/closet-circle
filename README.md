@@ -40,7 +40,8 @@ Users can create profiles, browse and list clothing, save favorites, manage a sh
 - Clothing listings and product discovery
 - Trending and categorized marketplace listings
 - Favorites and wishlist management
-- Shopping cart and transaction workflows
+- Buyer-owned shopping carts with purchase and rental intent
+- Atomic checkout with availability validation and order price snapshots
 - Buyer order history
 - Seller transaction history
 - Profile management
@@ -239,7 +240,7 @@ From the `server` directory:
 npm test
 ```
 
-The tests verify server startup and health, public marketplace visibility, authentication and ownership boundaries, listing drafts and publishing, image validation, listing updates, archiving, deletion, and removal of legacy mutation endpoints.
+The tests verify server startup and health, public marketplace visibility, authentication and ownership boundaries, listing drafts and publishing, image validation, listing updates, cart isolation, checkout behavior, archiving, deletion, and removal of legacy mutation endpoints.
 
 ### Frontend production build
 

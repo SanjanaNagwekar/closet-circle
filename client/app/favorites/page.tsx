@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useUser } from '@auth0/nextjs-auth0/client';
+import { useUser, withPageAuthRequired } from '@auth0/nextjs-auth0/client';
 import { apiUrl } from '@/lib/api';
 import {
     Header,
@@ -13,20 +13,12 @@ import {
     getUIColors,
     getUICondition,
     avatar,
-    audienceMap,
-    typesMap,
-    colorsMap,
-    dbConditionVals
 } from '../explore/ExplorePage';
 
 
 /* ============================================
    BRAND COLORS
 ============================================ */
-const brandNavy = '#284472';
-const brandLightPink = "#fdf5f3";
-const brandPink = "#FDEEEA";
-const brandLightBrown = "#efe4e1";
 const brandBrown = "#675a5e";
 
 /**
@@ -44,7 +36,7 @@ useEffect(() => {
 
     const fetchWishlistItems = async () => {
         try {
-            const response = await fetch(apiUrl(`/api/profile/wishlist?email=${user.email}`));
+            const response = await fetch(apiUrl('/api/profile/wishlist'));
             const data = await response.json();
 
             if (response.ok) {
@@ -53,7 +45,6 @@ useEffect(() => {
                     setFavoriteItems([]);
                     return;
                 }
-                console.log(data.wishlist);
                 // Make backend data Product objects
                 setFavoriteItems(
                   data.wishlist.map((item: any) => ({
@@ -99,13 +90,13 @@ const handleRemove = async (id: number) => {
         const response = await fetch(apiUrl('/api/profile/wishlist'), {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: user.email, post_id: id }),
+            body: JSON.stringify({ post_id: id }),
         });
-        const data = await response.json();
         // Update local state to show deletion
         if (response.ok) {
             setFavoriteItems((prev) => prev.filter((p) => p.id !== id));
         } else {
+            const data = await response.json();
             console.error('Failed to remove from wishlist:', data.error);
         }
     } catch (error) {
@@ -126,7 +117,7 @@ const handleRemove = async (id: number) => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {favoriteItems.map((p) => (
                             <div key={p.id} className="space-y-2">
-                                <ProductCard product={p} initialFav setExplorePageItems={() => {}} userEmail={user?.email} />
+                                <ProductCard product={p} initialFav />
 
                                 <button
                                     onClick={() => handleRemove(p.id)}
@@ -149,4 +140,4 @@ const handleRemove = async (id: number) => {
     );
 };
 
-export default FavoritesPage;
+export default withPageAuthRequired(FavoritesPage);

@@ -159,21 +159,27 @@ test('protected endpoints reject requests without an access token', async () => 
 });
 
 test('debug endpoints are not exposed', async () => {
-    const [usersResponse, postCategoryResponse] = await Promise.all([
+    const [usersResponse, postCategoryResponse, unavailableResponse] = await Promise.all([
         fetch(`${BASE_URL}/api/users`),
         fetch(`${BASE_URL}/api/post-cat`),
+        fetch(`${BASE_URL}/api/all-unavailable`),
     ]);
 
     assert.equal(usersResponse.status, 404);
     assert.equal(postCategoryResponse.status, 404);
+    assert.equal(unavailableResponse.status, 404);
 });
 
-test('legacy listing mutation endpoints are not exposed', async () => {
-    const [uploadResponse, deleteResponse] = await Promise.all([
+test('legacy mutation endpoints are not exposed', async () => {
+    const [uploadResponse, deleteResponse, cartIdResponse, checkoutResponse] = await Promise.all([
         fetch(`${BASE_URL}/api/profile/upload-item`, { method: 'POST' }),
         fetch(`${BASE_URL}/api/profile/delete-item`, { method: 'POST' }),
+        fetch(`${BASE_URL}/api/profile/cart/id`),
+        fetch(`${BASE_URL}/api/profile/checkout`, { method: 'PUT' }),
     ]);
 
     assert.equal(uploadResponse.status, 404);
     assert.equal(deleteResponse.status, 404);
+    assert.equal(cartIdResponse.status, 404);
+    assert.equal(checkoutResponse.status, 404);
 });

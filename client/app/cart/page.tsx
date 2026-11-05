@@ -19,7 +19,7 @@ interface Product {
     title     : string;
     price     : number;
     images    : string[];       
-    isRented?: boolean;
+    intent    : 'purchase' | 'rental';
 }
 
 /* ============================================
@@ -141,108 +141,74 @@ const Header: React.FC = () => {
 };
 
 const CartPage: React.FC = () => {
-    // Necessary to calculate prices
     const { user }        = useUser();
-    const [cartTransactionId, setCartTransactionId] = useState(-1);
     const [cartItems, setCartItems] = useState<Product[]>([]);
-    const soldItems = cartItems.filter(item => !item.isRented);
-    const subtotal = soldItems.reduce((sum, item) => sum + item.price, 0);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isCheckingOut, setIsCheckingOut] = useState(false);
+    const [message, setMessage] = useState('');
+    const purchaseItems = cartItems.filter((item) => item.intent === 'purchase');
+    const subtotal = purchaseItems.reduce((sum, item) => sum + item.price, 0);
     const taxAmount = subtotal * 0.093;
-    const shippingCost = subtotal >= 30 ? 0 : 5.99;
+    const shippingCost = subtotal === 0 || subtotal >= 30 ? 0 : 5.99;
     const grandTotal = subtotal + taxAmount + shippingCost;
 
-    // Handle item removal
     const handleRemoveItem = async (id: number) => {
+        setMessage('');
         try {
-            const response = await fetch(apiUrl('/api/profile/cart/item'), {
+            const response = await fetch(apiUrl(`/api/profile/cart/items/${id}`), {
                 method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    transactionId: cartTransactionId, 
-                    postId: id,  // id of item to remove
-                }),
             });
 
-            const data = await response.json();
             if (response.ok) {
-                // Remove the item from cart in the frontend
                 setCartItems((prevItems) => prevItems.filter((item) => item.id !== id));
             } else {
-                console.error("Failed to remove item:", data.error);
+                const data = await response.json();
+                setMessage(data.error || 'Could not remove the item');
             }
         } catch (error) {
-            console.error("Error removing item:", error);
+            setMessage('Could not reach the server. Please try again.');
         }
     };
 
-    // Handle checkout
     const handleCheckout = async () => {
+        setIsCheckingOut(true);
+        setMessage('');
         try {
-            // fetch pending transaction id
-            const transactionIdResponse = await fetch(apiUrl(`/api/profile/cart/id?email=${user?.email}`))
-
-            const transactionIdData = await transactionIdResponse.json();
-            if (!transactionIdResponse.ok || !transactionIdData.transactionId) {
-                console.error('Failed to retrieve transaction ID:', transactionIdData.message || transactionIdData.error);
-                alert('Failed to retrieve transaction ID. Please try again.');
-                return;
-            }
-    
-            // Update the cartTransactionId state
-            setCartTransactionId(transactionIdData.transactionId);
-
-            // finish current transaction
-            const checkoutResponse = await fetch(apiUrl(`/api/profile/checkout?transactionId=${transactionIdData.transactionId}`), {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+            const response = await fetch(apiUrl('/api/profile/cart/checkout'), {
+                method: 'POST',
             });
-
-            const checkoutData = await checkoutResponse.json();
-
-            if (!checkoutResponse.ok) {
-                console.error('Failed to complete checkout:', checkoutData.error);
-                return;
+            const data = await response.json();
+            if (!response.ok) {
+                setMessage(data.error || 'Could not place the order');
+            } else {
+                setCartItems([]);
+                setMessage(data.message);
             }
-            alert("Checkout completed successfully")
-            console.log("Checkout completed succcessfully:", checkoutData);
-            setCartItems([]); // SET NEW TRANSACTION ID
-            // setCartTransactionId(newCartData.transactionId);
         } catch (error) {
-            console.error("Error during checkout process:", error);
+            setMessage('Could not reach the server. Please try again.');
+        } finally {
+            setIsCheckingOut(false);
         }
     }
 
-    /* Fetch cart items */
     useEffect(() => {
         if (!user) return;
-        
-        fetch(apiUrl(`/api/profile/cart?email=${user.email}`))
-            .then((response) => response.json())
-            .then((data) => {
-                console.log('Fetched posts: ', data);
-                console.log("RAW CART DATA:", data.cart);
-
-                if (!Array.isArray(data.cart)) {
-                    console.error("Invalid data format:", data);
-                    setCartItems([]);
-                    return;
-                }
-
-                const transformed: Product[] = data.cart.map((post: any) => ({
-                    id: post.post_id,
-                    title: post.title,
-                    price: post.price ?? 20, // Default price if not provided
-                    images: post.images, // Use the images array directly
-                    isRented: post.bflag === 1 && post.sflag === 0,
-                }));
-                setCartItems(transformed);
-                setCartTransactionId(data.transId);
+        setIsLoading(true);
+        fetch(apiUrl('/api/profile/cart'))
+            .then(async (response) => {
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Could not load your cart');
+                return data;
             })
-            .catch((error) => console.log('Error fetching cart items: ', error));
+            .then((data) => setCartItems(data.cart.map((post: any) => ({
+                id: post.post_id,
+                title: post.title,
+                price: Number(post.price),
+                images: post.images,
+                intent: post.intent,
+            }))))
+            .catch((error) => setMessage(error.message))
+            .finally(() => setIsLoading(false));
     }, [user]);
 
     return (
@@ -252,7 +218,18 @@ const CartPage: React.FC = () => {
             <main className="container mx-auto py-6 px-4 flex-1">
                 <h1 className="text-2xl font-semibold mb-6" style={{ color: brandBrown }}>Your Cart</h1>
 
-                {cartItems.length === 0 ? (
+                {message && (
+                    <p
+                        className="mb-5 rounded-md bg-[#fdf5f3] px-4 py-3 text-sm text-[#675a5e]"
+                        role="status"
+                    >
+                        {message}
+                    </p>
+                )}
+
+                {isLoading ? (
+                    <p className="text-center text-gray-600">Loading your cart…</p>
+                ) : cartItems.length === 0 ? (
                     <div className="text-center">
                         <p className="text-lg text-gray-600">Your cart is empty.</p>
                         <Link
@@ -289,14 +266,13 @@ const CartPage: React.FC = () => {
                                     <div className="flex-1">
                                     <h2 className="text-lg font-medium" style={{ color: brandBrown }}>
                                         {item.title}
-                                        {item.isRented && (<span className="text-lg font-medium" style={{ color: brandBrown }}>{" "}
-                                            - Request to Rent
-                                        </span>
+                                        {item.intent === 'rental' && (
+                                            <span className="text-base font-normal"> · Rental request</span>
                                         )}
                                     </h2>
                                     <p className="text-gray-600">
                                         ${item.price.toFixed(2)}
-                                        {item.isRented && <span> Per Day</span>}
+                                        {item.intent === 'rental' && <span> per day</span>}
                                     </p>
                                     </div>
                                     <button
@@ -324,7 +300,7 @@ const CartPage: React.FC = () => {
                                 <span>Shipping</span>
                                 <span>{subtotal >= 30 ? 'Free' : `$${shippingCost.toFixed(2)}`}</span>
                             </div>
-                            {subtotal < 30 && (
+                            {subtotal > 0 && subtotal < 30 && (
                                 <div className="text-sm mb-2" style={{ color: 'rgba(brandBrownRGB, 0.7)' }}>
                                     ${(30 - subtotal).toFixed(2)} more to qualify for free shipping
                                 </div>
@@ -335,11 +311,17 @@ const CartPage: React.FC = () => {
                                 <span>${grandTotal.toFixed(2)}</span>
                             </div>
                             <button
-                                className="mt-6 w-full px-4 py-2 text-white font-medium bg-blue-600 rounded"
-                                onClick={() => handleCheckout()}
+                                className="mt-6 w-full rounded bg-blue-600 px-4 py-2 font-medium text-white disabled:opacity-60"
+                                disabled={isCheckingOut}
+                                onClick={handleCheckout}
                             >
-                                Checkout
+                                {isCheckingOut ? 'Placing order…' : 'Place order'}
                             </button>
+                            {cartItems.some((item) => item.intent === 'rental') && (
+                                <p className="mt-3 text-xs text-gray-500">
+                                    Rental items are submitted as requests and are not included in today&apos;s total.
+                                </p>
+                            )}
                         </div>
                     </div>
                 )}
@@ -348,4 +330,4 @@ const CartPage: React.FC = () => {
     );
 };
 
-export default CartPage;
+export default withPageAuthRequired(CartPage);

@@ -124,6 +124,7 @@ async function loadListing(db, postId, email) {
                     FROM Transaction_Listing
                     JOIN Transactions USING (transaction_id)
                     WHERE Transaction_Listing.post_id = Post.post_id
+                      AND Transaction_Listing.intent = 'purchase'
                       AND Transactions.status = 'purchased'
                 ) AS sold
          FROM Post

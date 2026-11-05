@@ -26,6 +26,7 @@ const app = express();
 app.disable('x-powered-by');
 
 var profileRouter = require("./routes/profile");
+const cartRouter = require('./routes/cart');
 const listingsRouter = require('./routes/listings');
 
 app.use(express.json());
@@ -51,6 +52,7 @@ app.use('/api/uploads', express.static(uploadsPath, {
     index: false,
     maxAge: '1y',
 }));
+app.use('/api/profile/cart', cartRouter(db, apiAuth));
 app.use(
     '/api/profile/listings',
     listingsRouter(db, apiAuth, {
@@ -89,6 +91,14 @@ app.get('/api/posts/trending', (req, res) => {
             User_Like ON Post.post_id = User_Like.post_id
         WHERE
             Post.listing_status = 'published'
+            AND NOT EXISTS (
+                SELECT 1
+                FROM Transaction_Listing SoldListing
+                JOIN Transactions SoldTransaction USING (transaction_id)
+                WHERE SoldListing.post_id = Post.post_id
+                  AND SoldListing.intent = 'purchase'
+                  AND SoldTransaction.status = 'purchased'
+            )
         GROUP BY
             Post.post_id
         ORDER BY
@@ -163,7 +173,18 @@ app.get('/api/posts/trending', (req, res) => {
 
 // Route to get all posts
 app.get('/api/posts-all', (req, res) => {
-    const sqlSelectAll = `SELECT * FROM Post WHERE listing_status = 'published'`;
+    const sqlSelectAll = `
+        SELECT *
+        FROM Post
+        WHERE listing_status = 'published'
+          AND NOT EXISTS (
+              SELECT 1
+              FROM Transaction_Listing SoldListing
+              JOIN Transactions SoldTransaction USING (transaction_id)
+              WHERE SoldListing.post_id = Post.post_id
+                AND SoldListing.intent = 'purchase'
+                AND SoldTransaction.status = 'purchased'
+          )`;
     const queryImages = `SELECT image_url FROM Post_Image WHERE post_id = ?`;
     const queryUser = `SELECT first_name, last_name FROM User WHERE email = ?`;
     const queryPostCategories = `SELECT category_id FROM Post_Category WHERE post_id = ?`;
@@ -230,90 +251,6 @@ app.get('/api/posts-all', (req, res) => {
             });
         });
 });
-
-// get seller transaction history
-    app.get("/api/all-unavailable", (req, res) => {
-        const queryTransaction = `SELECT transaction_id, purchased_date FROM Transactions WHERE status = 'purchased'`;
-        const queryListings = `SELECT post_id FROM Transaction_Listing WHERE transaction_id = ?`
-        const queryPosts = `SELECT title, price, sflag, bflag FROM Post WHERE post_id = ?`
-        const queryPostImage = `SELECT image_url FROM Post_Image WHERE post_id = ?`
-
-        db.all(queryTransaction, [], (err, transactions) => {
-            if (err) {
-                console.log("err in query listings");
-                console.error(err.message);
-                res.status(500).json({ error: err.message });
-                return;
-            }
-
-            if (!transactions) {
-                // no purchased transactions found
-                res.json({ orders: [] });
-                return;
-            }
-
-            // find all listings for all found transactions for this user
-            const transactionPromises = transactions.map((transaction) => {
-                return new Promise((resolve, reject) => {
-                    // Find all listings in the transaction
-                    db.all(queryListings, [transaction.transaction_id], (err, listingItems) => {
-                        if (err) {
-                            console.error(err.message);
-                            console.log("err in query listings");
-                            res.status(500).json({ error: err.message });
-                            return;
-                        }
-
-                        // Fetch details for each post in the cart
-                        const orderDetailsPromises = listingItems.map((item) => {
-                            return new Promise((resolve, reject) => {
-                                db.get(queryPosts, [item.post_id], (err, post) => {
-                                    if (err) {
-                                        console.log("err in query posts");
-                                        reject(err);
-                                        return;
-                                    }
-
-                                    if (!post) {
-                                        resolve(null);
-                                        return;
-                                    }
-
-                                    // Fetch post images
-                                    db.all(queryPostImage, [item.post_id], (err, images) => {
-                                        if (err) {
-                                            console.log("err in query images");
-                                            reject(err);
-                                            return;
-                                        }
-
-                                        post.images = images.map((img) => img.image_url);
-                                        resolve({ ...post, post_id: item.post_id, purchased_date: transaction.purchased_date });
-                                    });
-                                });
-                            });
-                        });
-
-                        Promise.all(orderDetailsPromises)
-                            // Filer out any null results
-                            .then(results => resolve(results.filter(r => r !== null)))
-                            .catch(reject);
-                    });
-                });
-            });
-
-            // Resolve all promises and return order details
-            Promise.all(transactionPromises)
-                .then((orderDetails) => {
-                    const flattenedOrders = orderDetails.flat();
-                    res.json( { orders: flattenedOrders});
-                })
-                .catch((error) => {
-                    console.error(error.message);
-                    res.status(500).json({ error: error.message });
-                })
-            })
-        });
 
 // Route to add a user into table User of closet_circle_database
 // note: used in client/app/users/new/page.tsx

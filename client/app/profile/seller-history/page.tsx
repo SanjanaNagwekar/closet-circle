@@ -50,12 +50,12 @@ const SellerHistoryPage: React.FC = () => {
                     price: post.price ?? 20, // Default price if not provided
                     images: post.images, // Use the images array directly
                     date: post.purchased_date.substring(0, post.purchased_date.indexOf(' ')), // date format yyy-mm-dd (doesnt display timestamp)
-                    purchased: post.sflag === 1,
-                    borrowed:  post.bflag === 1
+                    purchased: post.intent === 'purchase',
+                    borrowed: post.intent === 'rental',
                 }));
 
-                const purchasedItems = transformed.filter(item => item.purchased == true);
-                const borrowedItems = transformed.filter(item => item.borrowed == true && item.purchased == false);
+                const purchasedItems = transformed.filter((item) => item.purchased);
+                const borrowedItems = transformed.filter((item) => item.borrowed);
                 setSoldOrders(purchasedItems);
                 setBorrowedOrders(borrowedItems);
                 //setPurchasedOrders(transformed);
