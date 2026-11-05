@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useUser } from '@auth0/nextjs-auth0/client';
@@ -58,6 +58,74 @@ function ProductImage({ product, index }: { product?: FeaturedProduct; index: nu
   );
 }
 
+function HeroOrbit({ products }: { products: FeaturedProduct[] }) {
+  const sceneRef = useRef<HTMLDivElement>(null);
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) / bounds.width;
+    const y = (event.clientY - bounds.top) / bounds.height;
+    const scene = sceneRef.current;
+    if (!scene) return;
+
+    scene.style.setProperty('--orbit-tilt-x', `${(0.5 - y) * 9}deg`);
+    scene.style.setProperty('--orbit-tilt-y', `${(x - 0.5) * 11}deg`);
+    scene.style.setProperty('--orbit-light-x', `${x * 100}%`);
+    scene.style.setProperty('--orbit-light-y', `${y * 100}%`);
+  };
+
+  const resetScene = () => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    scene.style.setProperty('--orbit-tilt-x', '0deg');
+    scene.style.setProperty('--orbit-tilt-y', '0deg');
+    scene.style.setProperty('--orbit-light-x', '50%');
+    scene.style.setProperty('--orbit-light-y', '45%');
+  };
+
+  return (
+    <div
+      aria-label="Interactive Closet Circle community wardrobe"
+      className="hero-orbit"
+      onPointerLeave={resetScene}
+      onPointerMove={handlePointerMove}
+      ref={sceneRef}
+    >
+      <div className="hero-orbit__spotlight" aria-hidden="true" />
+      <div className="hero-orbit__stage">
+        <div className="hero-orbit__line hero-orbit__line--one" aria-hidden="true" />
+        <div className="hero-orbit__line hero-orbit__line--two" aria-hidden="true" />
+        <i className="hero-orbit__spark hero-orbit__spark--one" aria-hidden="true" />
+        <i className="hero-orbit__spark hero-orbit__spark--two" aria-hidden="true" />
+        <i className="hero-orbit__spark hero-orbit__spark--three" aria-hidden="true" />
+
+        <div className="hero-brand-card">
+          <span className="hero-brand-card__eyebrow">Welcome to the circle</span>
+          <Image
+            alt="Closet Circle"
+            height={130}
+            priority
+            src="https://cdn.builder.io/api/v1/image/assets/TEMP/cbcbc59fadb92cbfa94f7a46414d883263e97dc4"
+            unoptimized
+            width={310}
+          />
+          <p>Share more. Wear differently.</p>
+          <Link href="/explore">Open the closet <ArrowIcon /></Link>
+        </div>
+
+        <div className="hero-item hero-item--one"><ProductImage index={1} product={products[0]} /><span>find</span></div>
+        <div className="hero-item hero-item--two"><ProductImage index={2} product={products[1]} /><span>style</span></div>
+        <div className="hero-item hero-item--three"><ProductImage index={0} product={products[2]} /><span>share</span></div>
+        <span className="hero-orbit__pill hero-orbit__pill--top">pre-loved</span>
+        <span className="hero-orbit__pill hero-orbit__pill--bottom">community first</span>
+        <span className="hero-orbit__hint" aria-hidden="true">move to explore</span>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const { user } = useUser();
   const [featuredItems, setFeaturedItems] = useState<FeaturedProduct[]>([]);
@@ -105,28 +173,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="hero-orbit" aria-label="Closet Circle community wardrobe">
-            <div className="hero-orbit__line hero-orbit__line--one" aria-hidden="true" />
-            <div className="hero-orbit__line hero-orbit__line--two" aria-hidden="true" />
-            <div className="hero-brand-card">
-              <span className="hero-brand-card__eyebrow">Welcome to the circle</span>
-              <Image
-                alt="Closet Circle"
-                height={130}
-                priority
-                src="https://cdn.builder.io/api/v1/image/assets/TEMP/cbcbc59fadb92cbfa94f7a46414d883263e97dc4"
-                unoptimized
-                width={310}
-              />
-              <p>Share more. Wear differently.</p>
-              <Link href="/explore">Open the closet <ArrowIcon /></Link>
-            </div>
-            <div className="hero-item hero-item--one"><ProductImage index={1} /><span>find</span></div>
-            <div className="hero-item hero-item--two"><ProductImage index={2} /><span>style</span></div>
-            <div className="hero-item hero-item--three"><ProductImage index={0} /><span>share</span></div>
-            <span className="hero-orbit__pill hero-orbit__pill--top">pre-loved</span>
-            <span className="hero-orbit__pill hero-orbit__pill--bottom">community first</span>
-          </div>
+          <HeroOrbit products={featuredItems} />
         </section>
 
         <section className="home-marquee" aria-label="Marketplace benefits">
