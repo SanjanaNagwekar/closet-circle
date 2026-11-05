@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const { authErrorHandler, createAuth } = require('./auth');
 const {
     checkDatabase,
     closeDatabase,
@@ -17,6 +18,7 @@ const clientOrigins = new Set(
         .filter(Boolean),
 );
 const databasePath = resolveDatabasePath();
+const apiAuth = createAuth();
 
 const app = express();
 app.disable('x-powered-by');
@@ -40,7 +42,7 @@ app.use(cors({
 
 const db = openDatabase(databasePath);
 
-app.use("/api/profile", profileRouter(db));
+app.use("/api/profile", profileRouter(db, apiAuth));
 
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', service: 'closet-circle-api' });
@@ -48,7 +50,7 @@ app.get('/health', (req, res) => {
 
 app.get('/ready', async (req, res) => {
     try {
-        const ready = await checkDatabase(db);
+        const ready = await checkDatabase(db) && apiAuth.configured;
         res.status(ready ? 200 : 503).json({ status: ready ? 'ready' : 'not-ready' });
     } catch (error) {
         res.status(503).json({ status: 'not-ready', error: error.message });
@@ -59,18 +61,6 @@ app.get('/ready', async (req, res) => {
 app.get('/', (req, res) => {
     res.json("hello this is the backend")
 })
-
-// Define a route to get all users
-app.get('/api/users', (req, res) => {
-    const sqlSelectAll = `SELECT * FROM User`;
-    db.all(sqlSelectAll, [], (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        res.json({ users: rows });
-    });
-});
 
 app.get('/api/posts/trending', (req, res) => {
     const queryTrending = `
@@ -307,37 +297,11 @@ app.get('/api/posts-all', (req, res) => {
             })
         });
 
-// For testing - route to get all from Post_Category (posts associated with categories) 
-app.get('/api/post-cat', (req, res) => {
-    const sqlSelectAll = `SELECT * FROM Post_Category`;
-    db.all(sqlSelectAll, [], (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        res.json({ users: rows });
-    });
-});
-
-// Define a route to add a new user
-app.post('/api/users', (req, res) => {
-    const { first_name, last_name, username, password, email } = req.body;
-    const sqlInsert = `INSERT INTO users (first_name, last_name, username, password, email) VALUES (?, ?, ?, ?, ?)`;
-    db.run(sqlInsert, [first_name, last_name, username, password, email], function (err) {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        res.json({ id: this.lastID });
-    });
-});
-
-
 // Route to add a user into table User of closet_circle_database
 // note: used in client/app/users/new/page.tsx
-app.post('/api/users/new', (req, res) => {
-    console.log(req.body);
-    const { email, first_name, last_name, bio } = req.body;
+app.post('/api/users/new', ...apiAuth.requireUser, (req, res) => {
+    const { first_name, last_name, bio } = req.body;
+    const email = req.currentUser.email;
     const sqlInsert = `INSERT INTO User (email, first_name, last_name, bio) VALUES (?, ?, ?, ?)`;
     db.run(sqlInsert, [email, first_name, last_name, bio], function (err) {
         if (err) {
@@ -354,7 +318,7 @@ app.get('/api/profile', (req, res) => {
     //console.log(req.body);
     const { email } = req.query;
     console.log("email query " + email);
-    const sqlSelect = `SELECT * FROM User WHERE email = ?`;
+    const sqlSelect = `SELECT email, first_name, last_name, join_date, bio FROM User WHERE email = ?`;
     db.all(sqlSelect, email, function (err, rows) {
         if (err) {
             res.status(500).json({ error: err.message });
@@ -364,6 +328,13 @@ app.get('/api/profile', (req, res) => {
         console.log("rows: " + rows);
         res.json({ users: rows });
     });
+});
+
+app.use(authErrorHandler);
+
+app.use((error, req, res, next) => {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
 });
 
 
@@ -377,6 +348,7 @@ async function startServer() {
         server = app.listen(port, host, () => {
             console.log(`Server is running on http://${host}:${port}`);
             console.log(`Database: ${databasePath}`);
+            console.log(`Authentication: ${apiAuth.configured ? 'configured' : 'not configured'}`);
             resolve(server);
         });
         server.once('error', reject);

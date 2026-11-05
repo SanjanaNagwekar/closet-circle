@@ -43,6 +43,9 @@ test.before(async () => {
             CLIENT_ORIGINS: 'http://localhost:3000',
             DATABASE_PATH: TEST_DATABASE_PATH,
             SEED_DATABASE_ON_START: 'true',
+            AUTH0_ISSUER_BASE_URL: 'https://closet-circle-test.auth0.com/',
+            AUTH0_AUDIENCE: 'https://api.closet-circle.test',
+            AUTH0_EMAIL_CLAIM: 'https://closet-circle.app/email',
         },
         stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -101,6 +104,22 @@ test('GET /api/posts/trending returns posts with lister metadata', async () => {
         assert.equal(typeof post.lister.display, 'string');
         assert.equal(typeof post.lister.username, 'string');
     }
+});
+
+test('protected endpoints reject requests without an access token', async () => {
+    const response = await fetch(`${BASE_URL}/api/profile/cart?email=user1@email.com`);
+    assert.equal(response.status, 401);
+    assert.deepEqual(await response.json(), { error: 'Unauthorized' });
+});
+
+test('debug endpoints are not exposed', async () => {
+    const [usersResponse, postCategoryResponse] = await Promise.all([
+        fetch(`${BASE_URL}/api/users`),
+        fetch(`${BASE_URL}/api/post-cat`),
+    ]);
+
+    assert.equal(usersResponse.status, 404);
+    assert.equal(postCategoryResponse.status, 404);
 });
 
 test('upload-item route binds rental_date to the rental_end_date insert', () => {

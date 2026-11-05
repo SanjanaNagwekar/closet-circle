@@ -100,6 +100,8 @@ AUTH0_DOMAIN=your-tenant.us.auth0.com
 AUTH0_CLIENT_ID=
 AUTH0_CLIENT_SECRET=
 AUTH0_SECRET=
+AUTH0_AUDIENCE=https://api.closet-circle
+AUTH0_SCOPE=openid profile email offline_access
 APP_BASE_URL=http://localhost:3000
 API_BASE_URL=http://127.0.0.1:8800
 ```
@@ -119,7 +121,26 @@ Allowed Callback URL: http://localhost:3000/api/auth/callback
 Allowed Logout URL:   http://localhost:3000
 ```
 
-The project uses Auth0's Next.js v4 middleware while preserving the existing `/api/auth/*` login, logout, and callback URLs.
+Create an Auth0 API with `https://api.closet-circle` as its identifier. The value only needs to be a stable identifier; it does not need to be a public URL. Add a Post Login Action to place the user's email in the API access token:
+
+```javascript
+exports.onExecutePostLogin = async (event, api) => {
+  api.accessToken.setCustomClaim(
+    'https://closet-circle.app/email',
+    event.user.email,
+  );
+};
+```
+
+Add the Action to the Login flow, then configure the Express API:
+
+```bash
+cp server/.env.example server/.env
+```
+
+The client and server must use the same `AUTH0_AUDIENCE`. The server validates the token issuer, audience, and signature and reads the current user's email from `AUTH0_EMAIL_CLAIM`.
+
+The project uses Auth0's Next.js v4 middleware while preserving the existing `/api/auth/*` login, logout, and callback URLs. Access tokens stay on the Next.js server and are attached to API requests by the `/backend-api/*` route handler rather than being exposed to browser code.
 
 `API_BASE_URL` is read by the Next.js server. Browser requests use the same-origin `/backend-api/*` proxy, so client components do not need deployment-specific API URLs.
 
@@ -151,6 +172,8 @@ The backend also supports optional environment overrides:
 ```bash
 DATABASE_PATH=./data/closet-circle.db \
 CLIENT_ORIGINS=http://localhost:3000 \
+AUTH0_DOMAIN=your-tenant.us.auth0.com \
+AUTH0_AUDIENCE=https://api.closet-circle \
 PORT=8800 \
 HOST=127.0.0.1 \
 npm start
@@ -167,7 +190,7 @@ npm run db:setup    # migrate and seed an empty database
 npm run db:reset    # rebuild the local database from scratch
 ```
 
-The API exposes `/health` for process health and `/ready` for database readiness.
+The API exposes `/health` for process health and `/ready` for database and authentication readiness.
 
 ### Container deployment
 
@@ -178,6 +201,8 @@ cd server
 docker build -t closet-circle-api .
 docker run --rm -p 8800:8800 \
   -e CLIENT_ORIGINS=http://localhost:3000 \
+  -e AUTH0_DOMAIN=your-tenant.us.auth0.com \
+  -e AUTH0_AUDIENCE=https://api.closet-circle \
   -v closet-circle-data:/data \
   closet-circle-api
 ```
@@ -210,7 +235,7 @@ From the `server` directory:
 npm test
 ```
 
-The smoke tests verify that the server starts, the health endpoint responds, trending posts include lister metadata, and the item-upload route binds the rental end date correctly.
+The tests verify server startup and health, public marketplace reads, authentication middleware, protected-route behavior, removal of debug endpoints, and the item-upload rental date binding.
 
 ### Frontend production build
 

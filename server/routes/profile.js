@@ -1,7 +1,7 @@
 var express = require("express");
-var router = express.Router();
 
-module.exports = (db) => {
+module.exports = (db, { requireUser }) => {
+    var router = express.Router();
     // GETS posts for a specific user
     router.get("/posts", (req, res) => {
         console.log("getting posts");
@@ -51,8 +51,8 @@ module.exports = (db) => {
 
 
     // GET friends list
-    router.get("/friends", (req, res) => {
-        const { email } = req.query;
+    router.get("/friends", ...requireUser, (req, res) => {
+        const email = req.currentUser.email;
         const queryFriends = `SELECT friend_id FROM Friend WHERE email = ?`;
         const queryFriendDetails = `SELECT first_name, last_name, email FROM User WHERE email = ?`;
 
@@ -92,8 +92,9 @@ module.exports = (db) => {
     })
 
     // POST add friends 
-    router.post("/add-friend", (req, res) => {
-        const { email, friend_id } = req.body;
+    router.post("/add-friend", ...requireUser, (req, res) => {
+        const email = req.currentUser.email;
+        const { friend_id } = req.body;
         const queryInsertFriends = `INSERT INTO Friend (email, friend_id) VALUES (?, ?)`;
 
         db.run(queryInsertFriends, [email, friend_id], function (err) {
@@ -149,8 +150,9 @@ module.exports = (db) => {
     })
 
     // DELETE friends
-    router.delete("/remove-friend", (req, res) => {
-        const { email, friend_id } = req.body;
+    router.delete("/remove-friend", ...requireUser, (req, res) => {
+        const email = req.currentUser.email;
+        const { friend_id } = req.body;
         const deleteQuery = `DELETE FROM Friend WHERE email = ? AND friend_id = ?`;
 
         db.run(deleteQuery, [email, friend_id], function (err) {
@@ -166,8 +168,8 @@ module.exports = (db) => {
     
 
     // GET user's cart
-    router.get("/cart", (req, res) => {
-        const { email } = req.query;
+    router.get("/cart", ...requireUser, (req, res) => {
+        const email = req.currentUser.email;
         const queryTransaction = `SELECT transaction_id FROM Transactions WHERE email = ? AND status = 'pending'`;
         const queryCart = `SELECT post_id FROM Transaction_Listing WHERE transaction_id = ?`
         const queryPosts = `SELECT title, price, bflag, sflag, item_condition, size FROM Post WHERE post_id = ?`
@@ -246,16 +248,22 @@ module.exports = (db) => {
     })
 
     // PUT cart status
-    router.put("/checkout", (req, res) => {
+    router.put("/checkout", ...requireUser, (req, res) => {
         const { transactionId } = req.query;
+        const email = req.currentUser.email;
         const checkoutQuery = `
             UPDATE Transactions SET status = 'purchased'
-            WHERE transaction_id = ? AND status = 'pending'`;
+            WHERE transaction_id = ? AND email = ? AND status = 'pending'`;
         
-        db.run(checkoutQuery, [transactionId], function (err) {
+        db.run(checkoutQuery, [transactionId, email], function (err) {
             if (err) {
                 console.error(err.message);
                 res.status(500).json({ error: "Failed to checkout" });
+                return;
+            }
+
+            if (this.changes === 0) {
+                res.status(404).json({ error: "Pending transaction not found" });
                 return;
             }
 
@@ -263,14 +271,23 @@ module.exports = (db) => {
         })
     })
 
-    router.put("/cart/addItem", (req, res) => {
+    router.put("/cart/addItem", ...requireUser, (req, res) => {
         const { transactionId, postId } = req.body;
-        const addItemQuery = `INSERT INTO Transaction_Listing (transaction_id, post_id) VALUES (?, ?)`;
+        const email = req.currentUser.email;
+        const addItemQuery = `
+            INSERT INTO Transaction_Listing (transaction_id, post_id)
+            SELECT transaction_id, ? FROM Transactions
+            WHERE transaction_id = ? AND email = ? AND status = 'pending'`;
 
-        db.run(addItemQuery, [transactionId, postId], function (err) {
+        db.run(addItemQuery, [postId, transactionId, email], function (err) {
             if (err) {
                 console.error(err.message);
                 res.status(500).json({ error: "Failed to add item to cart" });
+                return;
+            }
+
+            if (this.changes === 0) {
+                res.status(404).json({ error: "Pending transaction not found" });
                 return;
             }
 
@@ -279,8 +296,8 @@ module.exports = (db) => {
     })
 
     // GET transaction id
-    router.get("/cart/id", (req, res) => {
-        const { email } = req.query;
+    router.get("/cart/id", ...requireUser, (req, res) => {
+        const email = req.currentUser.email;
         const query = `SELECT transaction_id FROM Transactions WHERE email = ? AND status = 'pending'`;
 
         db.get(query, [email], (err, row) => {
@@ -301,14 +318,26 @@ module.exports = (db) => {
     })
 
     // DELETE cart item
-    router.delete("/cart/item", (req, res) => {
+    router.delete("/cart/item", ...requireUser, (req, res) => {
         const { transactionId, postId } = req.body;
-        const deleteQuery = `DELETE FROM Transaction_Listing WHERE transaction_id = ? AND post_id = ?`;
+        const email = req.currentUser.email;
+        const deleteQuery = `
+            DELETE FROM Transaction_Listing
+            WHERE transaction_id = ? AND post_id = ?
+            AND EXISTS (
+                SELECT 1 FROM Transactions
+                WHERE transaction_id = ? AND email = ? AND status = 'pending'
+            )`;
 
-        db.run(deleteQuery, [transactionId, postId], function (err) {
+        db.run(deleteQuery, [transactionId, postId, transactionId, email], function (err) {
             if (err) {
                 console.error(err.message);
                 res.status(500).json({ error: "Failed to remove item from cart" });
+                return;
+            }
+
+            if (this.changes === 0) {
+                res.status(404).json({ error: "Cart item not found" });
                 return;
             }
 
@@ -318,9 +347,10 @@ module.exports = (db) => {
 
 
     // POST for a specific user - O.C.
-    router.post("/upload-item", (req, res) => {
+    router.post("/upload-item", ...requireUser, (req, res) => {
         var post_id;
-        const { closet_id, owner_id, title, likes, item_pictures, description, date_posted, item_condition, categories, size, for_sale, for_rent, price, rental_date } = req.body;
+        const owner_id = req.currentUser.email;
+        const { closet_id, title, likes, item_pictures, description, date_posted, item_condition, categories, size, for_sale, for_rent, price, rental_date } = req.body;
         const query = `INSERT INTO Post (closet_id, owner_id, title, likes, description, date_posted, item_condition, size, price, bflag, sflag, rental_end_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
         const query_post_category = `INSERT INTO Post_Category (post_id, category_id) VALUES (?, ?)`;
         const query_post_images = `INSERT INTO Post_Image (post_id, image_url) VALUES (?, ?)`;
@@ -374,36 +404,49 @@ module.exports = (db) => {
 
     })
 
-    router.post("/delete-item", (req, res) => {
+    router.post("/delete-item", ...requireUser, (req, res) => {
         const { post_id } = req.body;
+        const email = req.currentUser.email;
+        const findOwnedPost = `SELECT post_id FROM Post WHERE post_id = ? AND owner_id = ?`;
         const deletePostImages = `DELETE FROM Post_Image WHERE post_id = ?`;
         const deletePostCategories = `DELETE FROM Post_Category WHERE post_id = ?`;
-        const deletePost = `DELETE FROM Post WHERE post_id = ?`;
+        const deletePost = `DELETE FROM Post WHERE post_id = ? AND owner_id = ?`;
     
-        // Start by deleting related data
-        db.run(deletePostImages, [post_id], function (err) {
+        db.get(findOwnedPost, [post_id, email], function (err, post) {
             if (err) {
-                console.error("Error deleting post images:", err.message);
-                res.status(500).json({ error: "Failed to delete post images" });
+                console.error("Error finding post:", err.message);
+                res.status(500).json({ error: "Failed to delete item" });
                 return;
             }
-    
-            db.run(deletePostCategories, [post_id], function (err) {
+
+            if (!post) {
+                res.status(404).json({ error: "Item not found" });
+                return;
+            }
+
+            db.run(deletePostImages, [post_id], function (err) {
                 if (err) {
-                    console.error("Error deleting post categories:", err.message);
-                    res.status(500).json({ error: "Failed to delete post categories" });
+                    console.error("Error deleting post images:", err.message);
+                    res.status(500).json({ error: "Failed to delete post images" });
                     return;
                 }
-    
-                // Finally, delete the post itself
-                db.run(deletePost, [post_id], function (err) {
+
+                db.run(deletePostCategories, [post_id], function (err) {
                     if (err) {
-                        console.error("Error deleting post:", err.message);
-                        res.status(500).json({ error: "Failed to delete post" });
+                        console.error("Error deleting post categories:", err.message);
+                        res.status(500).json({ error: "Failed to delete post categories" });
                         return;
                     }
-    
-                    res.json({ success: true, message: "Item deleted successfully" });
+
+                    db.run(deletePost, [post_id, email], function (err) {
+                        if (err) {
+                            console.error("Error deleting post:", err.message);
+                            res.status(500).json({ error: "Failed to delete post" });
+                            return;
+                        }
+
+                        res.json({ success: true, message: "Item deleted successfully" });
+                    });
                 });
             });
         });
@@ -411,8 +454,8 @@ module.exports = (db) => {
     }) 
 
     // GET purchased transactions for a user
-    router.get("/order-history/purchased", (req, res) => {
-        const { email } = req.query;
+    router.get("/order-history/purchased", ...requireUser, (req, res) => {
+        const email = req.currentUser.email;
         const queryTransaction = `SELECT transaction_id, purchased_date FROM Transactions WHERE email = ? AND status = 'purchased'`;
         const queryListings = `SELECT post_id FROM Transaction_Listing WHERE transaction_id = ?`
         const queryPosts = `SELECT title, price, sflag, bflag FROM Post WHERE post_id = ?`
@@ -584,9 +627,9 @@ module.exports = (db) => {
 
 
         // GET wishlist/favorite items
-        router.get("/wishlist", (req, res) => {
+        router.get("/wishlist", ...requireUser, (req, res) => {
             console.log("getting wishlist");
-            const { email } = req.query;
+            const email = req.currentUser.email;
             const queryWishlist = `SELECT W.*, P.*, U.first_name, U.last_name
                                    FROM Wishlist W, Post P, User U
                                    WHERE W.post_id = P.post_id
@@ -637,8 +680,9 @@ module.exports = (db) => {
 
 
         // POST add to wishlist
-        router.post("/wishlist", (req, res) => {
-            const { email, post_id } = req.body;
+        router.post("/wishlist", ...requireUser, (req, res) => {
+            const email = req.currentUser.email;
+            const { post_id } = req.body;
             const query = `INSERT INTO Wishlist (email, post_id) VALUES (?, ?)`;
             db.run(query, [email, post_id], function(err) {
                 if (err) {
@@ -651,8 +695,9 @@ module.exports = (db) => {
         });
 
         // DELETE from wishlist
-        router.delete("/wishlist", (req, res) => {
-            const { email, post_id } = req.body;
+        router.delete("/wishlist", ...requireUser, (req, res) => {
+            const email = req.currentUser.email;
+            const { post_id } = req.body;
             const query = `DELETE FROM Wishlist WHERE email = ? AND post_id = ?`;
             db.run(query, [email, post_id], function(err) {
                 if (err) {
