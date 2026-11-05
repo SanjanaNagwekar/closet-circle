@@ -4,6 +4,12 @@ Closet Circle is a full-stack peer-to-peer clothing marketplace designed to make
 
 Users can create profiles, browse and list clothing, save favorites, manage a shopping cart, complete marketplace transactions, and view buyer and seller history.
 
+## Product Preview
+
+[![Closet Circle marketplace homepage](documentation/closet-circle-preview.png)](https://closet-circle-self.vercel.app)
+
+*Open the [live UI demo](https://closet-circle-self.vercel.app) to explore the marketplace.*
+
 ## Project Links
 
 - **Live UI Demo:** [closet-circle-self.vercel.app](https://closet-circle-self.vercel.app)
