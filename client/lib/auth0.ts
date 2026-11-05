@@ -9,6 +9,7 @@ const audience = process.env.AUTH0_AUDIENCE;
 export const auth0 = new Auth0Client({
   domain,
   appBaseUrl: process.env.APP_BASE_URL || process.env.AUTH0_BASE_URL,
+  signInReturnToPath: '/profile',
   authorizationParameters: {
     ...(audience ? { audience } : {}),
     scope: process.env.AUTH0_SCOPE || 'openid profile email offline_access',

@@ -583,10 +583,8 @@ const ProfilePage: React.FC = () => {
             fetch(apiUrl(`/api/profile?email=${user.email}`))
             .then(response => response.json())
             .then(data => {
-                // I added code in auth0 that stores first_login claim - O.C.
-                const firstLogin = user['http://localhost:3000/first_login'];
                 // Redirect to continue account creation page (where new users are saved to db after completion) - O.C.
-                if (data.users.length <= 0 && (firstLogin && !newUserCompleted)) {
+                if (data.users.length <= 0 && !newUserCompleted) {
                     router.push('/users/new');
 
                 } else { // otherwise stay on profile page with subsequent logins
