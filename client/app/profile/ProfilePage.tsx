@@ -1,17 +1,21 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useUser, withPageAuthRequired } from '@auth0/nextjs-auth0/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiUrl } from '@/lib/api';
+import ListingEditorModal, {
+    ListingEditorValues,
+    ListingStatus,
+} from './ListingEditorModal';
 
 /* ============================================
    BRAND COLORS
 ============================================ */
 const brandNavy = '#284472';
 const brandLightPink = "#fdf5f3";
-const brandPink = "#FDEEEA";
 const brandLightBrown = "#efe4e1";
 const brandBrown = "#675a5e";
 /* ============================================
@@ -31,6 +35,7 @@ interface ClosetProduct {
     condition? : string;
     description?: string;
     images     : string[];          // [] ⇒ gray placeholder
+    status     : ListingStatus;
 }
 
 interface Friend {
@@ -38,6 +43,51 @@ interface Friend {
     first_name  : string;
     last_name   : string;
     profile_url : string | null;
+}
+
+const AUDIENCE_CATEGORIES = [
+    { label: "Women's", id: 1 },
+    { label: "Men's", id: 2 },
+    { label: 'Kids', id: 3 },
+];
+const TYPE_CATEGORIES = [
+    { label: 'Tops', id: 4 },
+    { label: 'Bottoms', id: 5 },
+    { label: 'Outerwear', id: 6 },
+    { label: 'Dresses', id: 7 },
+    { label: 'Shoes', id: 8 },
+    { label: 'Accessories', id: 9 },
+];
+const COLOR_CATEGORIES = ['black', 'white', 'red', 'blue', 'green', 'pink']
+    .map((label, index) => ({ label, id: index + 10 }));
+const LISTING_CATEGORIES = [
+    ...AUDIENCE_CATEGORIES,
+    ...TYPE_CATEGORIES,
+    ...COLOR_CATEGORIES,
+];
+
+function getDBCategories(type: string, audience: string, colors: string[] = []) {
+    return LISTING_CATEGORIES
+        .filter(({ label }) => label === type || label === audience || colors.includes(label))
+        .map(({ id }) => id);
+}
+
+function getCategoryLabels(categoryIds: number[], categories: typeof LISTING_CATEGORIES) {
+    return categories
+        .filter(({ id }) => categoryIds.includes(id))
+        .map(({ label }) => label);
+}
+
+function getUIAudience(categoryIds: number[]) {
+    return getCategoryLabels(categoryIds, AUDIENCE_CATEGORIES);
+}
+
+function getUIType(categoryIds: number[]) {
+    return getCategoryLabels(categoryIds, TYPE_CATEGORIES);
+}
+
+function getUIColors(categoryIds: number[]) {
+    return getCategoryLabels(categoryIds, COLOR_CATEGORIES);
 }
 
 /* ============================================
@@ -232,7 +282,12 @@ const TabButton = ({
 /* ============================================
    CLOSET CARD
 ============================================ */
-const ClosetCard: React.FC<{ product: ClosetProduct; onDelete: (id: number | string) => void }> = ({ product, onDelete }) => {
+const ClosetCard: React.FC<{
+    product: ClosetProduct;
+    onArchive: (id: number | string) => void;
+    onDelete: (id: number | string) => void;
+    onEdit: (product: ClosetProduct) => void;
+}> = ({ product, onArchive, onDelete, onEdit }) => {
     const [idx, setIdx]   = useState(0);
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement | null>(null);
@@ -254,27 +309,34 @@ const ClosetCard: React.FC<{ product: ClosetProduct; onDelete: (id: number | str
 
     return (
         <div ref={ref} className="relative bg-gray-100 rounded-lg border overflow-visible">
-            {/* Delete Button */}
-            <button
-                onClick={() => onDelete(product.id)}
-                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 shadow-md z-50"
-                aria-label="Delete Item"
-            >
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth="1.5"
-                    stroke="currentColor"
-                    className="w-4 h-4"
+            <div className="absolute right-2 top-2 z-50 flex gap-1">
+                <button
+                    aria-label={`Edit ${product.title || 'draft listing'}`}
+                    className="rounded-full bg-white px-2 py-1 text-xs shadow"
+                    onClick={() => onEdit(product)}
+                    type="button"
                 >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M6 18L18 6M6 6l12 12"
-                    />
-                </svg>
-            </button>
+                    Edit
+                </button>
+                {product.status !== 'archived' && (
+                    <button
+                        aria-label={`Archive ${product.title || 'draft listing'}`}
+                        className="rounded-full bg-gray-800 px-2 py-1 text-xs text-white shadow"
+                        onClick={() => onArchive(product.id)}
+                        type="button"
+                    >
+                        Archive
+                    </button>
+                )}
+                <button
+                    aria-label={`Delete ${product.title || 'draft listing'}`}
+                    className="rounded-full bg-red-600 px-2 py-1 text-xs text-white shadow"
+                    onClick={() => onDelete(product.id)}
+                    type="button"
+                >
+                    Delete
+                </button>
+            </div>
 
             {/* image / carousel */}
             {imgCount ? (
@@ -329,9 +391,12 @@ const ClosetCard: React.FC<{ product: ClosetProduct; onDelete: (id: number | str
 
             {/* title + buy/rent */}
             <div className="p-3">
+                <span className="mb-2 inline-block rounded-full bg-white px-2 py-1 text-xs font-medium capitalize text-[#675a5e]">
+                    {product.sold ? 'sold' : product.status}
+                </span>
                 <div className="flex justify-between items-start">
                     <h3 className="text-sm font-medium text-black mb-2 pr-2 line-clamp-2">
-                        {product.title}
+                        {product.title || 'Untitled draft'}
                     </h3>
                     <button
                         onClick={() => setOpen(!open)}
@@ -515,295 +580,14 @@ const Footer: React.FC = () => (
 );
 
 /* ============================================
-   ADD-PRODUCT MODAL
-   (put this just above ProfilePage in page.tsx
-   or extract to components/AddProductModal.tsx)
-============================================ */
-import { createPortal } from 'react-dom';
-
-
-/* ----- dropdown option sets (mirrors ExplorePage) ----- */
-const colorOptions     = ['black','white','red','blue','green','pink'];
-const sizeOptions      = ['XX-Small','X-Small','Small','Medium','Large','X-Large','XX-Large','3X-Large','4X-Large'];
-const conditionOptions = ['Brand new','Used – Like new','Used – Good','Used – Fair'];
-
-
-/* ----- local type (id comes from parent) ----- */
-type NewProduct = Omit<ClosetProduct, 'id'>;
-
-const emptyProduct: NewProduct = {
-    title : '',
-    price : '', 
-    forSale: true,
-    forRent: false,
-    type  : 'Tops',
-    audience: "Women's",
-    colors: [],
-    sizes : [],
-    condition: conditionOptions[0],
-    description: '',
-    images: [''],
-};
-
-interface AddProductModalProps {
-    open: boolean;
-    onClose: () => void;
-    onSave: (p: NewProduct) => void;
-}
-
-export const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSave }) => {
-    const [draft,  setDraft ] = useState<NewProduct>(emptyProduct);
-    const [errors, setErrors] = useState<Record<string,string>>({});
-
-    /* -------- helpers -------- */
-    const update  = <K extends keyof NewProduct>(field: K, value: NewProduct[K]) =>
-        setDraft(prev => ({ ...prev, [field]: value }));
-
-    const outline = `border-2 rounded px-2 py-1 w-full focus:outline-none`;
-
-    const validate = (p: NewProduct) => {
-        const e: Record<string,string> = {};
-        if (!p.title.trim())   e.title    = 'Title is required';
-        if (!p.price || Number(p.price) <= 0) e.price = 'Price must be greater than 0';
-        if (!p.forSale && !p.forRent)     e.saleRent = 'Select at least one';
-        if (p.colors == undefined || p.colors.length === 0)        e.colors   = 'Choose at least one colour';
-        if (p.sizes == undefined || p.sizes.length  === 0)        e.sizes    = 'Choose at least one size';
-        if (!p.images[0].trim())          e.images   = 'At least one image URL is required';
-        return e;
-    };
-
-    const resetAndClose = () => {
-        setDraft(emptyProduct);
-        setErrors({});
-        onClose();
-    };
-
-    if (!open) return null;
-
-    return createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div
-                className="bg-white w-full max-w-lg rounded-lg shadow-lg p-6 overflow-y-auto max-h-[90vh] space-y-4"
-                style={{ color: brandBrown }}
-            >
-                <h2 className="text-2xl font-semibold mb-2">Add a new item</h2>
-
-                {/* ---------- TITLE ---------- */}
-                <label className="block">
-                    <span className="font-medium">Title</span>
-                    <input
-                        className={outline}
-                        style={{ borderColor: errors.title ? 'red' : brandLightBrown }}
-                        value={draft.title}
-                        onChange={e => update('title', e.target.value)}
-                    />
-                    {errors.title && <p className="text-sm text-red-600">{errors.title}</p>}
-                </label>
-
-                {/* ---------- PRICE ---------- */}
-                <label className="block">
-                    <span className="font-medium">Price ($)</span>
-                    <input
-                        type="number"
-                        min={0}
-                        className={outline}
-                        style={{ borderColor: errors.price ? 'red' : brandLightBrown }}
-                        value={draft.price}
-                        onChange={e => {
-                            const val = e.target.value;
-                            // ensure only digits or empty strings and replace leading 0's
-                            if (/^\d*$/.test(val)) update('price', val.replace(/^0+(?=\d)/, '')); 
-                        }}
-                        placeholder="Enter price"
-                    />
-                    {errors.price && <p className="text-sm text-red-600">{errors.price}</p>}
-                </label>
-
-
-                {/* ---------- SALE / RENT ---------- */}
-                <div className="flex gap-20">
-                    <label className="flex items-center gap-2">
-                        <input
-                            type="radio"
-                            name="radioSellRent"
-                            checked={draft.forSale}
-                            onChange={e => {
-                                update('forSale', true);
-                                update('forRent', false);
-                                }
-                            }
-                        /> For&nbsp;Sale
-                    </label>
-                    <label className="flex items-center gap-2">
-                        <input
-                            type="radio"
-                            name="radioSellRent"
-                            checked={draft.forRent}
-                            onChange={e => {
-                                update('forRent', true);
-                                update('forSale', false);
-                                }
-                            }
-                        /> For&nbsp;Rent
-                    </label>
-                </div>
-                {errors.saleRent && <p className="text-sm text-red-600">{errors.saleRent}</p>}
-
-                {/* ---------- TYPE & AUDIENCE ---------- */}
-                <div className="flex gap-4">
-                    <label className="flex-1">
-                        <span className="font-medium">Type</span>
-                        <select
-                            className={outline}
-                            style={{ borderColor: brandLightBrown }}
-                            value={draft.type}
-                            onChange={e => update('type', e.target.value as NewProduct['type'])}
-                        >
-                            {['Tops','Bottoms','Outerwear','Dresses','Shoes','Accessories'].map(t=>(
-                                <option key={t}>{t}</option>
-                            ))}
-                        </select>
-                    </label>
-
-                    <label className="flex-1">
-                        <span className="font-medium">Audience</span>
-                        <select
-                            className={outline}
-                            style={{ borderColor: brandPink }}
-                            value={draft.audience}
-                            onChange={e => update('audience', e.target.value as NewProduct['audience'])}
-                        >
-                            {["Men's","Women's","Kids"].map(a=>(
-                                <option key={a}>{a}</option>
-                            ))}
-                        </select>
-                    </label>
-                </div>
-
-                {/* ---------- COLOURS ---------- */}
-                <label className="block">
-                    <span className="font-medium">Colours (⌘/Ctrl-click for multiple)</span>
-                    <select
-                        multiple
-                        className={outline}
-                        style={{ borderColor: errors.colors ? 'red' : brandLightBrown, height: '6rem' }}
-                        value={draft.colors}
-                        onChange={e => update(
-                            'colors',
-                            Array.from(e.target.selectedOptions).map(o=>o.value)
-                        )}
-                    >
-                        {colorOptions.map(c => <option key={c}>{c}</option>)}
-                    </select>
-                    {errors.colors && <p className="text-sm text-red-600">{errors.colors}</p>}
-                </label>
-
-                {/* ---------- SIZES ---------- */}
-                <label className="block">
-                    <span className="font-medium">Sizes</span>
-                    <select
-                        multiple
-                        className={outline}
-                        style={{ borderColor: errors.sizes ? 'red' : brandLightBrown, height: '8rem' }}
-                        value={draft.sizes}
-                        onChange={e => update(
-                            'sizes',
-                            Array.from(e.target.selectedOptions).map(o=>o.value)
-                        )}
-                    >
-                        {sizeOptions.map(s => <option key={s}>{s}</option>)}
-                    </select>
-                    {errors.sizes && <p className="text-sm text-red-600">{errors.sizes}</p>}
-                </label>
-
-                {/* ---------- CONDITION ---------- */}
-                <label className="block">
-                    <span className="font-medium">Condition</span>
-                    <select
-                        className={outline}
-                        style={{ borderColor: brandLightBrown }}
-                        value={draft.condition}
-                        onChange={e => update('condition', e.target.value)}
-                    >
-                        {conditionOptions.map(c => <option key={c}>{c}</option>)}
-                    </select>
-                </label>
-
-                {/* ---------- DESCRIPTION ---------- */}
-                <label className="block">
-                    <span className="font-medium">Description</span>
-                    <textarea
-                        className={outline + ' min-h-[80px]'}
-                        style={{ borderColor: brandLightBrown }}
-                        value={draft.description}
-                        onChange={e => update('description', e.target.value)}
-                    />
-                </label>
-
-                {/* ---------- IMAGES ---------- */}
-                <label className="block">
-                    <span className="font-medium">Image URLs (first required)</span>
-                    {draft.images.map((url, i) => (
-                        <input
-                            key={i}
-                            className={outline + ' mt-1'}
-                            style={{ borderColor: (errors.images && i===0) ? 'red' : brandLightBrown }}
-                            placeholder={`Image ${i+1} URL`}
-                            value={url}
-                            onChange={e => {
-                                const next = [...draft.images];
-                                next[i] = e.target.value;
-                                update('images', next);
-                            }}
-                        />
-                    ))}
-                    {errors.images && <p className="text-sm text-red-600">{errors.images}</p>}
-                    <button
-                        type="button"
-                        onClick={() => update('images', [...draft.images, ''])}
-                        className="mt-1 underline text-sm"
-                    >
-                        + Add another image
-                    </button>
-                </label>
-
-                {/* ---------- ACTION BUTTONS ---------- */}
-                <div className="flex justify-end gap-3 pt-2">
-                    <button
-                        onClick={resetAndClose}
-                        className="px-4 py-2 rounded border"
-                        style={{ color: brandBrown, borderColor: brandBrown }}
-                    >
-                        Cancel
-                    </button>
-
-                    <button
-                        onClick={()=>{
-                            const errs = validate(draft);
-                            if (Object.keys(errs).length) { setErrors(errs); return; }
-                            //console.log(draft);
-                            // console.log(draft.audience);
-                            onSave(draft);
-                            resetAndClose();
-                        }}
-                        className="px-4 py-2 rounded text-white"
-                        style={{ backgroundColor: brandBrown }}
-                    >
-                        
-                        Save
-                    </button>
-                </div>
-            </div>
-        </div>,
-        document.body
-    );
-};
-
-/* ============================================
    PROFILE PAGE
 ============================================ */
 const ProfilePage: React.FC = () => {
-    const [showAddModal, setShowAddModal] = useState(false);
+    const [showListingEditor, setShowListingEditor] = useState(false);
+    const [editingListing, setEditingListing] = useState<ListingEditorValues | null>(null);
+    const [isSavingListing, setIsSavingListing] = useState(false);
+    const [listingRefreshKey, setListingRefreshKey] = useState(0);
+    const [sellerMessage, setSellerMessage] = useState('');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<number | string | null>(null);
     const { user, isLoading } = useUser();
@@ -821,17 +605,15 @@ const ProfilePage: React.FC = () => {
         'My Closet'
     );
     const [activeClosetTab, setActiveClosetTab] =
-        useState<'All' | 'Available' | 'For Rent' | 'Sold'>(
+        useState<'All' | 'Published' | 'Drafts' | 'Archived' | 'Sold'>(
             'All'
         );
-    const closetTabs = ['All', 'Available', 'For Rent', 'Sold'] as const;
+    const closetTabs = ['All', 'Published', 'Drafts', 'Archived', 'Sold'] as const;
 
     /* closet data */
     const [closetItems, setClosetItems] = useState<ClosetProduct[]>([]);
     const [friends,   setFriends  ] = useState<Friend[]>([]);
     const [followers,   setFollowers  ] = useState<Friend[]>([]);
-
-    const [unavailablePostIDs, setUnavailableArr] = useState<Number[]>([]);
 
     // reusable confirmation model
     const ConfirmationModal: React.FC<{
@@ -868,18 +650,11 @@ const ProfilePage: React.FC = () => {
         );
     };
 
-    // Ensure user is logged in - O.C.
-    if (!user) {
-        return;
-    }
-
-    // Check if new user has completed account creation - O.C.
-    const newUserCompleted = sessionStorage.getItem("newuser_complete");
-
     // Redirect to continue account creation page if new user
     // Otherwise display profile name
     useEffect(() => {
         if (!isLoading && user) {
+            const newUserCompleted = sessionStorage.getItem('newuser_complete');
             setEmail(user.email || ''); // email from Auth0
             console.log("here: email - " + user.email);
 
@@ -904,54 +679,36 @@ const ProfilePage: React.FC = () => {
          }
      }, [user, isLoading, router]);
 
-    /* fetch unavailable items */
-    useEffect(() => {
-        if (!user) return;
-        fetch(apiUrl(`/api/profile/seller-history?email=${user.email}`))
-                .then((response) => response.json())
-                .then((data) => {
-                    console.log('Fetched sold posts: ', data);
-        
-                    if (!Array.isArray(data.orders)) {
-                        console.error("Invalid data format:", data);
-                        return;
-                    }
-
-                    // IDs of unavailable items (to be marked as sold)
-                    setUnavailableArr(data.orders.map((item: { post_id: any; }) => item.post_id));
-                })
-                .catch((error) => console.log('Error fetching ordered items: ', error));
-    }, [user]);
-
     /* fetch user’s closet */
     useEffect(() => {
         if (!user) return;
-        fetch(apiUrl(`/api/profile/posts?ownerID=${user.email}`))
-            .then((r) => r.json())
+        fetch(apiUrl('/api/profile/listings'))
+            .then(async (response) => {
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Could not load listings');
+                return data;
+            })
             .then((data) => {
-                console.log(data);
-                const transformed: ClosetProduct[] = data.posts.map((p: any) => ({
+                const transformed: ClosetProduct[] = data.listings.map((p: any) => ({
                     id        : p.post_id,
                     title     : p.title,
-                    price     : p.price ?? 20,
+                    price     : p.price === null ? '' : String(p.price),
                     forSale   : p.sflag === 1,
                     forRent   : p.bflag === 1,
-                    sold      : unavailablePostIDs.includes(p.post_id),//p.sold ?? false,
+                    sold      : p.sold === 1,
                     images    : p.images,
-                    type      : getUIType(p.categories),
-                    audience  : getUIAudience(p.categories),
+                    type      : getUIType(p.categories)[0] || 'Tops',
+                    audience  : getUIAudience(p.categories)[0] || "Women's",
                     colors    : getUIColors(p.categories),
-                    sizes     : [p.size],
-                    condition : getUICondition(p.item_condition),
+                    sizes     : p.size ? [p.size] : [],
+                    condition : p.item_condition || 'new',
                     description: p.description,
+                    status    : p.listing_status,
                 }));
-                
-                setClosetItems(
-                    transformed.length ? [...transformed] : []
-                );
+                setClosetItems(transformed);
             })
-            .catch(console.error);
-    }, [user, unavailablePostIDs]);
+            .catch((error) => setSellerMessage(error.message));
+    }, [user, listingRefreshKey]);
 
     /* fetch user friend list */
     useEffect(() => {
@@ -977,9 +734,10 @@ const ProfilePage: React.FC = () => {
     /* filtered view */
     const filtered = closetItems.filter((item) => {
         if (activeClosetTab === 'All') return true;
-        if (activeClosetTab === 'Available') return !item.sold;
-        if (activeClosetTab === 'For Rent') return item.forRent && !item.sold;
-        return item.sold;
+        if (activeClosetTab === 'Published') return item.status === 'published' && !item.sold;
+        if (activeClosetTab === 'Drafts') return item.status === 'draft';
+        if (activeClosetTab === 'Archived') return item.status === 'archived';
+        return Boolean(item.sold);
     });
 
     /* loading / unauth */
@@ -993,102 +751,97 @@ const ProfilePage: React.FC = () => {
             </div>
         );
 
-    // Format date yyyy-mm-dd
-    function getFormattedDate() {
-        const date = new Date();
-        const month = date.getMonth() + 1;
-        const day = date.getDate();
-        const yr = date.getFullYear();
-        const formattedDate = `${yr}-${month}-${day}`
-        return formattedDate;
+    if (!user) return null;
+
+    function listingEditorValues(product: ClosetProduct): ListingEditorValues {
+        return {
+            id: product.id,
+            title: product.title,
+            price: product.price,
+            forSale: product.forSale,
+            forRent: product.forRent,
+            type: product.type || 'Tops',
+            audience: product.audience || "Women's",
+            colors: product.colors || [],
+            size: product.sizes?.[0] || 'Medium',
+            condition: product.condition || 'new',
+            description: product.description || '',
+            existingImages: product.images,
+            newImages: [],
+        };
     }
 
-    // map UI labels to db values
-    const audienceMap = [
-        { label: "Women's", db_val: 1 },
-        { label: "Men's", db_val: 2 },
-        { label: "Kids", db_val: 3 }
-    ];
+    async function saveListing(
+        listing: ListingEditorValues,
+        status: 'draft' | 'published',
+    ) {
+        const formData = new FormData();
+        formData.set('title', listing.title);
+        formData.set('price', listing.price);
+        formData.set('forSale', String(listing.forSale));
+        formData.set('forRent', String(listing.forRent));
+        formData.set('itemCondition', listing.condition);
+        formData.set('size', listing.size);
+        formData.set('description', listing.description);
+        formData.set('categories', JSON.stringify(
+            getDBCategories(listing.type, listing.audience, listing.colors),
+        ));
+        formData.set('existingImages', JSON.stringify(listing.existingImages));
+        formData.set('status', status);
+        listing.newImages.forEach((image) => formData.append('images', image));
 
-    const typesMap = [
-        { label: "Tops", db_val: 4 },
-        { label: "Bottoms", db_val: 5 },
-        { label: "Outerwear", db_val: 6 },
-        { label: "Dresses", db_val: 7 },
-        { label: "Shoes", db_val: 8 },
-        { label: "Accessories", db_val: 9 }
-    ];
+        setIsSavingListing(true);
+        setSellerMessage('');
+        try {
+            const isEditing = listing.id !== undefined;
+            const response = await fetch(
+                isEditing
+                    ? apiUrl(`/api/profile/listings/${listing.id}`)
+                    : apiUrl('/api/profile/listings'),
+                {
+                    method: isEditing ? 'PUT' : 'POST',
+                    body: formData,
+                },
+            );
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Could not save the listing');
 
-    const colorsMap = [
-        { label: colorOptions[0], db_val: 10 },
-        { label: colorOptions[1], db_val: 11 },
-        { label: colorOptions[2], db_val: 12 },
-        { label: colorOptions[3], db_val: 13 },
-        { label: colorOptions[4], db_val: 14 },
-        { label: colorOptions[5], db_val: 15 }
-    ];
+            setShowListingEditor(false);
+            setEditingListing(null);
+            setSellerMessage(status === 'published' ? 'Listing published.' : 'Draft saved.');
+            setListingRefreshKey((current) => current + 1);
+        } finally {
+            setIsSavingListing(false);
+        }
+    }
 
-    // array of all mappings
-    const dbCategories = audienceMap.concat(typesMap, colorsMap);
+    async function archiveListing(postId: number | string) {
+        setSellerMessage('');
+        try {
+            const response = await fetch(apiUrl(`/api/profile/listings/${postId}/status`), {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'archived' }),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Could not archive the listing');
+            setSellerMessage('Listing archived.');
+            setListingRefreshKey((current) => current + 1);
+        } catch (error) {
+            setSellerMessage(error instanceof Error ? error.message : 'Could not archive the listing');
+        }
+    }
 
-    const dbConditionVals = [
-        { label: conditionOptions[0], db_val: "new"},
-        { label: conditionOptions[1], db_val: "excellent"},
-        { label: conditionOptions[2], db_val: "good"},
-        { label: conditionOptions[3], db_val: "worn"},
-    ];
-
-    /* Returns an array of the db_vals for all categories user selected in uploading a post */
-    function getDBCategories(type: any, audience: any, colors: string[] | undefined) {
-        var dbCategoryID: any = [];
-        dbCategories.forEach(cat => {
-            // find type and audience (1 type and 1 audience can be selected)
-            if (type == cat.label || audience == cat.label) {
-                dbCategoryID.push(cat.db_val);
-            }
-
-            if (colors != undefined) {
-                // find colors (multiple colors can be selected)
-                colors.forEach(c  => {
-                    if (c == cat.label) {
-                        dbCategoryID.push(cat.db_val);
-                    }
-                })
-            }
+    async function deleteListing(postId: number | string) {
+        const response = await fetch(apiUrl(`/api/profile/listings/${postId}`), {
+            method: 'DELETE',
         });
-        return dbCategoryID;
-    }
-
-    /* Returns the db_val for the user selected condition */
-    function getDBCondition(condition: string | undefined) {
-        var dbCondition;
-        dbConditionVals.forEach(conditionOption => {
-            if (condition == conditionOption.label) {
-                dbCondition = conditionOption.db_val;
-            }
-        });
-        return dbCondition;
-    }
-
-    // returns one string for type ("Women's", "Men's", or "Kids")
-    function getUIAudience(dbVals: any) {
-        return audienceMap.filter(item => dbVals.includes(item.db_val)).map(item => item.label);
-    }
-
-    // returns one string for type (Tops, Bottoms, Outerwear, ...)
-    function getUIType(dbVals: any) {
-        return typesMap.filter(item => dbVals.includes(item.db_val)).map(item => item.label);
-    }
-
-    // returns array of colors as strings
-    function getUIColors(dbVals: any) {
-        return colorsMap.filter(item => dbVals.includes(item.db_val)).map(item => item.label);
-    }
-
-    // returns one string for condition
-    function getUICondition(condition: string) {
-        var matchedCondition = dbConditionVals.find(item => item.db_val == condition);
-        return matchedCondition?.label;
+        if (!response.ok) {
+            const result = await response.json();
+            throw new Error(result.error || 'Could not delete the listing');
+        }
+        setClosetItems((current) => current.filter((item) => item.id !== postId));
+        setSellerMessage('Listing deleted.');
     }
 
     /* page */
@@ -1243,7 +996,7 @@ const ProfilePage: React.FC = () => {
 
                         {/* filter tabs */}
                         {activeProfileTab === 'My Closet' && (
-                            <div className="flex gap-2 mb-6">
+                            <div className="mb-6 flex flex-wrap gap-2">
                                 {closetTabs.map((t) => (
                                     <TabButton
                                         key={t}
@@ -1256,6 +1009,15 @@ const ProfilePage: React.FC = () => {
                                 ))}
                             </div>
                         )}
+
+                        {activeProfileTab === 'My Closet' && sellerMessage && (
+                            <p
+                                className="mb-4 rounded-md bg-[#fdf5f3] px-4 py-3 text-sm text-[#675a5e]"
+                                role="status"
+                            >
+                                {sellerMessage}
+                            </p>
+                        )}
                         
                         {/* grid */}
                         {activeProfileTab === 'My Closet' && (
@@ -1264,16 +1026,25 @@ const ProfilePage: React.FC = () => {
                                     <ClosetCard
                                         key={p.id}
                                         product={p}
+                                        onArchive={(id) => archiveListing(id)}
                                         onDelete={(id) => {
                                             setItemToDelete(id);
                                             setShowDeleteModal(true);
                                         }}
+                                        onEdit={(product) => {
+                                            setEditingListing(listingEditorValues(product));
+                                            setShowListingEditor(true);
+                                        }}
                                     />
                                 ))}
 
-                                <div
-                                    className="bg-gray-100 rounded-lg aspect-square flex items-center justify-center cursor-pointer"
-                                    onClick={() => setShowAddModal(true)}
+                                <button
+                                    className="flex aspect-square items-center justify-center rounded-lg bg-gray-100"
+                                    onClick={() => {
+                                        setEditingListing(null);
+                                        setShowListingEditor(true);
+                                    }}
+                                    type="button"
                                 >
                                     <div className="flex flex-col items-center">
                                         <svg
@@ -1292,49 +1063,21 @@ const ProfilePage: React.FC = () => {
                                             <line x1="5" y1="12" x2="19" y2="12" />
                                         </svg>
                                         <p className="mt-2 text-sm text-gray-600">
-                                            Click to Upload More Items
+                                            Create a new listing
                                         </p>
                                     </div>
-                                </div>
+                                </button>
                             </div>
                         )}
-                        <AddProductModal
-                            open={showAddModal}
-                            onClose={() => setShowAddModal(false)}
-                            onSave={(p) => {
-
-                                // Information to be stored - O.C.
-                                const postInfoDB = {
-                                    closet_id: 0, // default value
-                                    owner_id: user.email,
-                                    title: p.title,
-                                    likes: 0, // default value
-                                    item_pictures: p.images, 
-                                    description: p.description,
-                                    date_posted: getFormattedDate(),
-                                    item_condition: getDBCondition(p.condition), // return either 'new', 'excellent', 'good', 'worn'
-                                    categories: getDBCategories(p.type, p.audience, p.colors), // array of category_id
-                                    size: p.sizes? p.sizes[0] : p.sizes, 
-                                    for_sale: p.forSale == true ? 1 : 0,
-                                    for_rent: p.forRent == true ? 1 : 0,
-                                    price: Number(p.price),
-                                    rental_date: ""
-                                };
-
-                                // 1) send to backend
-                                fetch(apiUrl('/api/profile/upload-item'), {
-                                    method : 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body   : JSON.stringify(postInfoDB),
-                                }).catch(console.error);
-
-                                // 2) optimistic UI update
-                                setClosetItems([
-                                    { id: Date.now(), ...p },        // temp id
-                                    ...closetItems,
-                                ]);
-                                setShowAddModal(false);
+                        <ListingEditorModal
+                            initialListing={editingListing}
+                            isSaving={isSavingListing}
+                            open={showListingEditor}
+                            onClose={() => {
+                                setShowListingEditor(false);
+                                setEditingListing(null);
                             }}
+                            onSave={saveListing}
                         />
 
                         <ConfirmationModal
@@ -1342,23 +1085,11 @@ const ProfilePage: React.FC = () => {
                             onClose={() => setShowDeleteModal(false)}
                             onConfirm={() => {
                                 if (itemToDelete !== null) {
-                                    // Send delete request to the backend
-                                    fetch(apiUrl('/api/profile/delete-item'), {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ post_id: itemToDelete }),
-                                    })
-                                        .then((response) => {
-                                            if (!response.ok) {
-                                                throw new Error('Failed to delete item');
-                                            }
-                                            // Update the frontend state
-                                            setClosetItems((prevItems) => prevItems.filter((item) => item.id !== itemToDelete));
-                                        })
-                                        .catch((error) => console.error('Error deleting item:', error))
+                                    deleteListing(itemToDelete)
+                                        .catch((error) => setSellerMessage(error.message))
                                         .finally(() => {
-                                            setShowDeleteModal(false); // Close the modal
-                                            setItemToDelete(null); // Reset the item to delete
+                                            setShowDeleteModal(false);
+                                            setItemToDelete(null);
                                         });
                                 }
                             }}

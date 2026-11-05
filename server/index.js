@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const { authErrorHandler, createAuth } = require('./auth');
+const { createImageUpload, resolveUploadsPath } = require('./listing-storage');
 const {
     checkDatabase,
     closeDatabase,
@@ -18,12 +19,14 @@ const clientOrigins = new Set(
         .filter(Boolean),
 );
 const databasePath = resolveDatabasePath();
+const uploadsPath = resolveUploadsPath(databasePath);
 const apiAuth = createAuth();
 
 const app = express();
 app.disable('x-powered-by');
 
 var profileRouter = require("./routes/profile");
+const listingsRouter = require('./routes/listings');
 
 app.use(express.json());
 
@@ -42,6 +45,19 @@ app.use(cors({
 
 const db = openDatabase(databasePath);
 
+app.use('/api/uploads', express.static(uploadsPath, {
+    dotfiles: 'deny',
+    immutable: true,
+    index: false,
+    maxAge: '1y',
+}));
+app.use(
+    '/api/profile/listings',
+    listingsRouter(db, apiAuth, {
+        imageUpload: createImageUpload(uploadsPath),
+        uploadsPath,
+    }),
+);
 app.use("/api/profile", profileRouter(db, apiAuth));
 
 app.get('/health', (req, res) => {
@@ -71,6 +87,8 @@ app.get('/api/posts/trending', (req, res) => {
             Post
         LEFT JOIN
             User_Like ON Post.post_id = User_Like.post_id
+        WHERE
+            Post.listing_status = 'published'
         GROUP BY
             Post.post_id
         ORDER BY
@@ -145,7 +163,7 @@ app.get('/api/posts/trending', (req, res) => {
 
 // Route to get all posts
 app.get('/api/posts-all', (req, res) => {
-    const sqlSelectAll = `SELECT * FROM Post`;
+    const sqlSelectAll = `SELECT * FROM Post WHERE listing_status = 'published'`;
     const queryImages = `SELECT image_url FROM Post_Image WHERE post_id = ?`;
     const queryUser = `SELECT first_name, last_name FROM User WHERE email = ?`;
     const queryPostCategories = `SELECT category_id FROM Post_Category WHERE post_id = ?`;
@@ -334,7 +352,9 @@ app.use(authErrorHandler);
 
 app.use((error, req, res, next) => {
     console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(error.statusCode || 500).json({
+        error: error.statusCode ? error.message : 'Internal server error',
+    });
 });
 
 
@@ -348,6 +368,7 @@ async function startServer() {
         server = app.listen(port, host, () => {
             console.log(`Server is running on http://${host}:${port}`);
             console.log(`Database: ${databasePath}`);
+            console.log(`Uploads: ${uploadsPath}`);
             console.log(`Authentication: ${apiAuth.configured ? 'configured' : 'not configured'}`);
             resolve(server);
         });

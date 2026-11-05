@@ -37,6 +37,12 @@ function get(db, sql, parameters = []) {
     });
 }
 
+function all(db, sql, parameters = []) {
+    return new Promise((resolve, reject) => {
+        db.all(sql, parameters, (error, rows) => error ? reject(error) : resolve(rows));
+    });
+}
+
 function run(db, sql, parameters = []) {
     return new Promise((resolve, reject) => {
         db.run(sql, parameters, function onRun(error) {
@@ -134,11 +140,15 @@ async function checkDatabase(db) {
 }
 
 module.exports = {
+    all,
     applyMigrations,
     checkDatabase,
     closeDatabase,
     initializeDatabase,
     openDatabase,
+    exec,
+    get,
     resolveDatabasePath,
+    run,
     seedDatabase,
 };

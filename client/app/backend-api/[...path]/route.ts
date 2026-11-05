@@ -25,11 +25,10 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
   apiUrl.search = request.nextUrl.search;
 
   const requestHeaders = new Headers();
-  const contentType = request.headers.get('content-type');
-  const accept = request.headers.get('accept');
-
-  if (contentType) requestHeaders.set('content-type', contentType);
-  if (accept) requestHeaders.set('accept', accept);
+  for (const headerName of ['accept', 'content-type', 'if-modified-since', 'if-none-match', 'range']) {
+    const headerValue = request.headers.get(headerName);
+    if (headerValue) requestHeaders.set(headerName, headerValue);
+  }
 
   try {
     const { token } = await auth0.getAccessToken();
@@ -51,13 +50,19 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
     });
 
     const responseHeaders = new Headers();
-    const responseContentType = apiResponse.headers.get('content-type');
-    const location = apiResponse.headers.get('location');
-    const authenticate = apiResponse.headers.get('www-authenticate');
-
-    if (responseContentType) responseHeaders.set('content-type', responseContentType);
-    if (location) responseHeaders.set('location', location);
-    if (authenticate) responseHeaders.set('www-authenticate', authenticate);
+    for (const headerName of [
+      'accept-ranges',
+      'cache-control',
+      'content-range',
+      'content-type',
+      'etag',
+      'last-modified',
+      'location',
+      'www-authenticate',
+    ]) {
+      const headerValue = apiResponse.headers.get(headerName);
+      if (headerValue) responseHeaders.set(headerName, headerValue);
+    }
 
     return new NextResponse(apiResponse.body, {
       status: apiResponse.status,

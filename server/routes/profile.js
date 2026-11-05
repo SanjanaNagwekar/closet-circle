@@ -6,7 +6,7 @@ module.exports = (db, { requireUser }) => {
     router.get("/posts", (req, res) => {
         console.log("getting posts");
         const { ownerID } = req.query;
-        const queryPosts = `SELECT * FROM Post WHERE owner_id = ?`;
+        const queryPosts = `SELECT * FROM Post WHERE owner_id = ? AND listing_status = 'published'`;
         const queryImages = `SELECT image_url FROM Post_Image WHERE post_id = ?`;
         const queryPostCategories = `SELECT category_id FROM Post_Category WHERE post_id = ?`;
 
@@ -344,114 +344,6 @@ module.exports = (db, { requireUser }) => {
             res.json({ success: true, message: "Item removed from cart" });
         })
     })
-
-
-    // POST for a specific user - O.C.
-    router.post("/upload-item", ...requireUser, (req, res) => {
-        var post_id;
-        const owner_id = req.currentUser.email;
-        const { closet_id, title, likes, item_pictures, description, date_posted, item_condition, categories, size, for_sale, for_rent, price, rental_date } = req.body;
-        const query = `INSERT INTO Post (closet_id, owner_id, title, likes, description, date_posted, item_condition, size, price, bflag, sflag, rental_end_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-        const query_post_category = `INSERT INTO Post_Category (post_id, category_id) VALUES (?, ?)`;
-        const query_post_images = `INSERT INTO Post_Image (post_id, image_url) VALUES (?, ?)`;
-        console.log(categories);
-
-        db.run(
-            query,
-            [closet_id, owner_id, title, likes, description, date_posted, item_condition, size, price, for_rent, for_sale, rental_date],
-            function (err) {
-                if (err) {
-                    console.log("error inserting inital post");
-                    console.log([closet_id, owner_id, title, likes, description, date_posted, item_condition, size]);
-                    res.status(500).json({ error: err.message });
-                    return;
-                }
-                post_id = this.lastID;
-
-                // Associate post with multiple images
-                item_pictures.forEach(image_url => {
-                    db.run(
-                        query_post_images,
-                        [post_id, image_url],
-                        function (err) {
-                            if (err) {
-                                console.log("error inserting images");
-                                res.status(500).json({ error: err.message });
-                                return;
-                            }
-                        }
-                    )
-                });
-
-                // Associate post with each category that was selected - O.C.
-                // Categories is an array of integers representing the category_id
-                categories.forEach(category_id => {
-                        db.run(
-                            query_post_category,
-                            [post_id, category_id],
-                            function (err) {
-                                if (err) {
-                                    console.log("error inserting category");
-                                    res.status(500).json({ error: err.message });
-                                    return;
-                                }
-                            }
-                        )
-                });
-
-                res.json("item saved to db"); // return success
-            })
-
-    })
-
-    router.post("/delete-item", ...requireUser, (req, res) => {
-        const { post_id } = req.body;
-        const email = req.currentUser.email;
-        const findOwnedPost = `SELECT post_id FROM Post WHERE post_id = ? AND owner_id = ?`;
-        const deletePostImages = `DELETE FROM Post_Image WHERE post_id = ?`;
-        const deletePostCategories = `DELETE FROM Post_Category WHERE post_id = ?`;
-        const deletePost = `DELETE FROM Post WHERE post_id = ? AND owner_id = ?`;
-    
-        db.get(findOwnedPost, [post_id, email], function (err, post) {
-            if (err) {
-                console.error("Error finding post:", err.message);
-                res.status(500).json({ error: "Failed to delete item" });
-                return;
-            }
-
-            if (!post) {
-                res.status(404).json({ error: "Item not found" });
-                return;
-            }
-
-            db.run(deletePostImages, [post_id], function (err) {
-                if (err) {
-                    console.error("Error deleting post images:", err.message);
-                    res.status(500).json({ error: "Failed to delete post images" });
-                    return;
-                }
-
-                db.run(deletePostCategories, [post_id], function (err) {
-                    if (err) {
-                        console.error("Error deleting post categories:", err.message);
-                        res.status(500).json({ error: "Failed to delete post categories" });
-                        return;
-                    }
-
-                    db.run(deletePost, [post_id, email], function (err) {
-                        if (err) {
-                            console.error("Error deleting post:", err.message);
-                            res.status(500).json({ error: "Failed to delete post" });
-                            return;
-                        }
-
-                        res.json({ success: true, message: "Item deleted successfully" });
-                    });
-                });
-            });
-        });
-
-    }) 
 
     // GET purchased transactions for a user
     router.get("/order-history/purchased", ...requireUser, (req, res) => {

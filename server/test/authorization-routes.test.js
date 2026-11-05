@@ -143,19 +143,6 @@ test('checkout cannot update another user’s transaction', async () => {
     assert.equal(transaction.status, 'pending');
 });
 
-test('listing deletion is limited to the listing owner', async () => {
-    const response = await request('/api/profile/delete-item', 'alice@example.com', {
-        method: 'POST',
-        body: JSON.stringify({ post_id: 1 }),
-    });
-
-    assert.equal(response.status, 404);
-    assert.deepEqual(await response.json(), { error: 'Item not found' });
-
-    const post = await get(`SELECT post_id FROM Post WHERE post_id = ?`, [1]);
-    assert.equal(post.post_id, 1);
-});
-
 test('the authorization fixture created separate pending transactions', () => {
     assert.notEqual(aliceTransactionId, bobTransactionId);
 });

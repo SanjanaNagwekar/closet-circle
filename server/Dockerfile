@@ -11,6 +11,8 @@ ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=8800
 ENV DATABASE_PATH=/data/closet-circle.db
+ENV UPLOADS_PATH=/data/uploads
+ENV IMAGE_URL_PREFIX=/backend-api/uploads
 ENV SEED_DATABASE_ON_START=true
 
 VOLUME ["/data"]

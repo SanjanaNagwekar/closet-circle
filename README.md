@@ -35,13 +35,15 @@ Users can create profiles, browse and list clothing, save favorites, manage a sh
 ## Key Features
 
 - Authenticated user accounts and profiles
+- Seller listing drafts, previews, publishing, editing, archiving, and deletion
+- Validated clothing image uploads with multi-image previews
 - Clothing listings and product discovery
 - Trending and categorized marketplace listings
 - Favorites and wishlist management
 - Shopping cart and transaction workflows
 - Buyer order history
 - Seller transaction history
-- Listing and profile management
+- Profile management
 
 ## Architecture
 
@@ -49,7 +51,8 @@ Closet Circle follows a client-server architecture:
 
 - The **Next.js frontend** provides the marketplace UI and authentication flow.
 - The **Node.js/Express backend** exposes REST API endpoints for users, listings, profiles, carts, transactions, and marketplace data.
-- **SQLite** stores users, listings, categories, transactions, favorites, and related application data.
+- **SQLite** stores users, listing states, categories, transactions, favorites, and related application data.
+- Uploaded listing images are stored alongside the database on the backend's persistent volume.
 - **Auth0** provides user authentication.
 
 ## My Contributions
@@ -171,6 +174,7 @@ The backend also supports optional environment overrides:
 
 ```bash
 DATABASE_PATH=./data/closet-circle.db \
+UPLOADS_PATH=./data/uploads \
 CLIENT_ORIGINS=http://localhost:3000 \
 AUTH0_DOMAIN=your-tenant.us.auth0.com \
 AUTH0_AUDIENCE=https://api.closet-circle \
@@ -179,7 +183,7 @@ HOST=127.0.0.1 \
 npm start
 ```
 
-For a deployed API, place `DATABASE_PATH` on persistent storage and run a single API instance. The database uses WAL mode and a write timeout so reads can continue during normal writes. Multiple allowed origins can be supplied as a comma-separated `CLIENT_ORIGINS` value.
+For a deployed API, place `DATABASE_PATH` and `UPLOADS_PATH` on persistent storage and run a single API instance. The database uses WAL mode and a write timeout so reads can continue during normal writes. Multiple allowed origins can be supplied as a comma-separated `CLIENT_ORIGINS` value.
 
 Database commands:
 
@@ -235,7 +239,7 @@ From the `server` directory:
 npm test
 ```
 
-The tests verify server startup and health, public marketplace reads, authentication middleware, protected-route behavior, removal of debug endpoints, and the item-upload rental date binding.
+The tests verify server startup and health, public marketplace visibility, authentication and ownership boundaries, listing drafts and publishing, image validation, listing updates, archiving, deletion, and removal of legacy mutation endpoints.
 
 ### Frontend production build
 

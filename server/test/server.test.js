@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
+const sqlite3 = require('sqlite3');
 
 const SERVER_DIR = path.join(__dirname, '..');
 const PORT = 18880;
@@ -12,6 +13,20 @@ const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'closet-circle-test-
 const TEST_DATABASE_PATH = path.join(TEST_DATA_DIR, 'closet-circle.db');
 
 let serverProcess;
+
+function runDatabase(sql, parameters = []) {
+    const database = new sqlite3.Database(TEST_DATABASE_PATH);
+    return new Promise((resolve, reject) => {
+        database.run(sql, parameters, function onRun(error) {
+            database.close();
+            if (error) {
+                reject(error);
+                return;
+            }
+            resolve({ changes: this.changes, lastID: this.lastID });
+        });
+    });
+}
 
 async function waitForServer(timeoutMs = 10000) {
     const deadline = Date.now() + timeoutMs;
@@ -106,6 +121,37 @@ test('GET /api/posts/trending returns posts with lister metadata', async () => {
     }
 });
 
+test('public marketplace endpoints exclude draft and archived listings', async () => {
+    await runDatabase(
+        `INSERT INTO Post (
+            closet_id, owner_id, title, item_condition, size, price,
+            bflag, sflag, listing_status
+         ) VALUES (1, 'user1@email.com', ?, 'good', 'Medium', 10, 0, 1, 'draft')`,
+        ['Private draft listing'],
+    );
+    await runDatabase(
+        `INSERT INTO Post (
+            closet_id, owner_id, title, item_condition, size, price,
+            bflag, sflag, listing_status
+         ) VALUES (1, 'user1@email.com', ?, 'good', 'Medium', 10, 0, 1, 'archived')`,
+        ['Archived listing'],
+    );
+
+    const [allPostsResponse, profilePostsResponse] = await Promise.all([
+        fetch(`${BASE_URL}/api/posts-all`),
+        fetch(`${BASE_URL}/api/profile/posts?ownerID=user1@email.com`),
+    ]);
+    assert.equal(allPostsResponse.status, 200);
+    assert.equal(profilePostsResponse.status, 200);
+
+    const publicTitles = (await allPostsResponse.json()).posts.map((post) => post.title);
+    const profileTitles = (await profilePostsResponse.json()).posts.map((post) => post.title);
+    assert.equal(publicTitles.includes('Private draft listing'), false);
+    assert.equal(publicTitles.includes('Archived listing'), false);
+    assert.equal(profileTitles.includes('Private draft listing'), false);
+    assert.equal(profileTitles.includes('Archived listing'), false);
+});
+
 test('protected endpoints reject requests without an access token', async () => {
     const response = await fetch(`${BASE_URL}/api/profile/cart?email=user1@email.com`);
     assert.equal(response.status, 401);
@@ -122,11 +168,12 @@ test('debug endpoints are not exposed', async () => {
     assert.equal(postCategoryResponse.status, 404);
 });
 
-test('upload-item route binds rental_date to the rental_end_date insert', () => {
-    const profileRoute = fs.readFileSync(path.join(SERVER_DIR, 'routes', 'profile.js'), 'utf8');
+test('legacy listing mutation endpoints are not exposed', async () => {
+    const [uploadResponse, deleteResponse] = await Promise.all([
+        fetch(`${BASE_URL}/api/profile/upload-item`, { method: 'POST' }),
+        fetch(`${BASE_URL}/api/profile/delete-item`, { method: 'POST' }),
+    ]);
 
-    assert.match(
-        profileRoute,
-        /\[closet_id, owner_id, title, likes, description, date_posted, item_condition, size, price, for_rent, for_sale, rental_date\]/,
-    );
+    assert.equal(uploadResponse.status, 404);
+    assert.equal(deleteResponse.status, 404);
 });
