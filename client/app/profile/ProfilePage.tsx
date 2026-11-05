@@ -41,6 +41,21 @@ interface ClosetProduct {
     status     : ListingStatus;
 }
 
+interface ListingRecord {
+    post_id: number;
+    title: string;
+    price: number | null;
+    sflag: number;
+    bflag: number;
+    sold?: number;
+    images: string[];
+    categories: number[];
+    size?: string;
+    item_condition?: string;
+    description?: string;
+    listing_status: ListingStatus;
+}
+
 interface Friend {
     email       : string;
     first_name  : string;
@@ -578,7 +593,6 @@ const ProfilePage: React.FC = () => {
         if (!isLoading && user) {
             const newUserCompleted = sessionStorage.getItem('newuser_complete');
             setEmail(user.email || ''); // email from Auth0
-            console.log("here: email - " + user.email);
 
             // Get specific user information from db - O.C.
             fetch(apiUrl(`/api/profile?email=${user.email}`))
@@ -589,7 +603,6 @@ const ProfilePage: React.FC = () => {
                     router.push('/users/new');
 
                 } else { // otherwise stay on profile page with subsequent logins
-                    console.log("returned: " + data.users[0]); // 1 user should be returned (1 account per email)
                     setFirstName(data.users[0].first_name);
                     setLastName(data.users[0].last_name);
                     setBio(data.users[0].bio);
@@ -609,7 +622,7 @@ const ProfilePage: React.FC = () => {
                 return data;
             })
             .then((data) => {
-                const transformed: ClosetProduct[] = data.listings.map((p: any) => ({
+                const transformed: ClosetProduct[] = data.listings.map((p: ListingRecord) => ({
                     id        : p.post_id,
                     title     : p.title,
                     price     : p.price === null ? '' : String(p.price),
@@ -1063,9 +1076,7 @@ const ProfilePage: React.FC = () => {
                                             className="mt-4 px-4 py-2 text-sm font-medium text-white rounded-md"
                                             style={{ backgroundColor: brandNavy }}
                                             onClick={() => {
-                                                // Handle profile navigation
                                                 router.push(`/profile/${friend.email}`);
-                                                console.log(`Navigate to profile of ${friend.email}`);
                                             }}
                                         >
                                             View Profile
@@ -1116,9 +1127,7 @@ const ProfilePage: React.FC = () => {
                                             className="mt-4 px-4 py-2 text-sm font-medium text-white rounded-md"
                                             style={{ backgroundColor: brandNavy }}
                                             onClick={() => {
-                                                // Handle profile navigation
                                                 router.push(`/profile/${follower.email}`);
-                                                console.log(`Navigate to profile of ${follower.email}`);
                                             }}
                                         >
                                             View Profile

@@ -4,7 +4,6 @@ module.exports = (db, { requireUser }) => {
     var router = express.Router();
     // GETS posts for a specific user
     router.get("/posts", (req, res) => {
-        console.log("getting posts");
         const { ownerID } = req.query;
         const queryPosts = `
             SELECT *
@@ -134,8 +133,6 @@ module.exports = (db, { requireUser }) => {
                 res.json({ followers: [] });
                 return;
             }
-            console.log(rows);
-
             const friendDetailsPromises = rows.map((row) => {
                 return new Promise((resolve, reject) => {
                     db.get(queryFriendDetails, [row.email], (err, follower) => {
@@ -143,7 +140,6 @@ module.exports = (db, { requireUser }) => {
                             reject(err);
                             return;
                         }
-                        console.log(follower);
                         resolve(follower);
                     });
                 });
@@ -275,100 +271,72 @@ module.exports = (db, { requireUser }) => {
             })
         })
 
-    // GET seller transaction history
-    router.get("/seller-history", (req, res) => {
-        const { email } = req.query;
-        const queryTransaction = `SELECT transaction_id, purchased_date FROM Transactions WHERE status = 'purchased'`;
-        const queryListings = `
-            SELECT post_id, intent, unit_price, rental_start_date, rental_end_date
-            FROM Transaction_Listing WHERE transaction_id = ?`
-        const queryPosts = `SELECT title, price, sflag, bflag FROM Post WHERE post_id = ? AND owner_id = ?`
-        const queryPostImage = `SELECT image_url FROM Post_Image WHERE post_id = ?`
+    // GET seller transaction history for the authenticated seller
+    router.get("/seller-history", ...requireUser, (req, res) => {
+        const email = req.currentUser.email;
+        const queryOrders = `
+            SELECT
+                P.post_id,
+                P.title,
+                COALESCE(TL.unit_price, P.price) AS price,
+                P.sflag,
+                P.bflag,
+                TL.intent,
+                TL.rental_start_date,
+                TL.rental_end_date,
+                T.purchased_date
+            FROM Transaction_Listing TL
+            JOIN Transactions T ON T.transaction_id = TL.transaction_id
+            JOIN Post P ON P.post_id = TL.post_id
+            WHERE T.status = 'purchased'
+              AND P.owner_id = ?
+            ORDER BY T.purchased_date DESC, P.post_id DESC`;
+        const queryPostImages = `
+            SELECT post_id, image_url
+            FROM Post_Image
+            WHERE post_id IN (
+                SELECT TL.post_id
+                FROM Transaction_Listing TL
+                JOIN Transactions T ON T.transaction_id = TL.transaction_id
+                JOIN Post P ON P.post_id = TL.post_id
+                WHERE T.status = 'purchased' AND P.owner_id = ?
+            )
+            ORDER BY post_id`;
 
-        db.all(queryTransaction, [], (err, transactions) => {
-            if (err) {
-                console.log("err in query listings");
-                console.error(err.message);
-                res.status(500).json({ error: err.message });
+        db.all(queryOrders, [email], (ordersError, orders) => {
+            if (ordersError) {
+                console.error(ordersError.message);
+                res.status(500).json({ error: 'Could not load seller history' });
                 return;
             }
 
-            if (!transactions) {
-                // No purchased transactions found
+            if (orders.length === 0) {
                 res.json({ orders: [] });
                 return;
             }
 
-            // Find all listings for all found transactions for this user
-            const transactionPromises = transactions.map((transaction) => {
-                return new Promise((resolve, reject) => {
-                    // Find all listings in the transaction
-                    db.all(queryListings, [transaction.transaction_id], (err, listingItems) => {
-                        if (err) {
-                            console.error(err.message);
-                            console.log("err in query listings");
-                            res.status(500).json({ error: err.message });
-                            return;
-                        }
+            db.all(queryPostImages, [email], (imagesError, images) => {
+                if (imagesError) {
+                    console.error(imagesError.message);
+                    res.status(500).json({ error: 'Could not load seller history images' });
+                    return;
+                }
 
-                        // Fetch details for each post in the cart
-                        const orderDetailsPromises = listingItems.map((item) => {
-                            return new Promise((resolve, reject) => {
-                                db.get(queryPosts, [item.post_id, email], (err, post) => {
-                                    if (err) {
-                                        console.log("err in query posts");
-                                        reject(err);
-                                        return;
-                                    }
+                const imagesByPost = images.reduce((result, image) => {
+                    if (!result[image.post_id]) result[image.post_id] = [];
+                    result[image.post_id].push(image.image_url);
+                    return result;
+                }, {});
 
-                                    if (!post) {
-                                        resolve(null);
-                                        return;
-                                    }
-
-                                    // Fetch post images
-                                    db.all(queryPostImage, [item.post_id], (err, images) => {
-                                        if (err) {
-                                            console.log("err in query images");
-                                            reject(err);
-                                            return;
-                                        }
-
-                                        post.images = images.map((img) => img.image_url);
-                                        resolve({
-                                            ...post,
-                                            post_id: item.post_id,
-                                            price: item.unit_price ?? post.price,
-                                            intent: item.intent,
-                                            rental_start_date: item.rental_start_date,
-                                            rental_end_date: item.rental_end_date,
-                                            purchased_date: transaction.purchased_date,
-                                        });
-                                    });
-                                });
-                            });
-                        });
-
-                        Promise.all(orderDetailsPromises)
-                            // Filer out any null results
-                            .then(results => resolve(results.filter(r => r !== null)))
-                            .catch(reject);
-                    });
+                res.json({
+                    orders: orders.map((order) => ({
+                        ...order,
+                        images: imagesByPost[order.post_id] || [],
+                    })),
                 });
             });
-
-            // Resolve all promises and return order details
-            Promise.all(transactionPromises)
-                .then((orderDetails) => {
-                    const flattenedOrders = orderDetails.flat();
-                    res.json( { orders: flattenedOrders});
-                })
-                .catch((error) => {
-                    console.error(error.message);
-                    res.status(500).json({ error: error.message });
-                })
-            })
-        })
+        });
+    });
 
 
         // GET wishlist/favorite items

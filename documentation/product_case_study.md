@@ -91,12 +91,14 @@ This evidence demonstrates functional and technical completeness. It is not a su
 
 ## Validation plan
 
-The next product-learning step is a small moderated usability study with three to five participants using two high-value tasks:
+Usability testing is planned but has not yet been conducted, so this case study does not claim participant results. The next product-learning step is a small moderated study with three to five participants using two high-value tasks:
 
 1. List an item for rental and publish it.
 2. Find an item, choose rental dates, submit a request, and identify its status.
 
 For each task, record completion, time to completion, points of hesitation, errors, and participant comments. Prioritize one repeated usability problem, implement the smallest useful correction, and compare the same task before and after the change.
+
+The [usability study guide](usability-study-guide.md) contains the participant script, observation template, success measures, and before-and-after comparison format for running this study consistently.
 
 ## Next product opportunities
 

@@ -272,17 +272,13 @@ app.post('/api/users/new', ...apiAuth.requireUser, (req, res) => {
 // Route to get a specific user based on email
 // note: used in client/app/profile/page.tsx to display first & last name, bio
 app.get('/api/profile', (req, res) => {
-    //console.log(req.body);
     const { email } = req.query;
-    console.log("email query " + email);
     const sqlSelect = `SELECT email, first_name, last_name, join_date, bio FROM User WHERE email = ?`;
     db.all(sqlSelect, email, function (err, rows) {
         if (err) {
             res.status(500).json({ error: err.message });
             return;
         }
-        console.log("running query");
-        console.log("rows: " + rows);
         res.json({ users: rows });
     });
 });

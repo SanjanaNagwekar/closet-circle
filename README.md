@@ -256,15 +256,13 @@ Running the production build is the quickest way to catch TypeScript, Next.js, a
 
 ## Project Documentation
 
-Additional design and architecture documentation is available in the [`documentation`](documentation/) directory, including:
+Current product and engineering documentation is available in the [`documentation`](documentation/) directory:
 
 - [Product case study](documentation/product_case_study.md)
-- Original project presentation
-- Block architecture
-- Layer architecture
-- Class diagram
-- Sequence diagrams
-- Feature documentation
+- [Current architecture](documentation/architecture.md)
+- [Current features and workflows](documentation/features.md)
+- [Usability study guide](documentation/usability-study-guide.md)
+- [Historical project artifacts](documentation/archive/README.md)
 
 Database schema files and the ER diagram are available in [`server/databases`](server/databases/).
 

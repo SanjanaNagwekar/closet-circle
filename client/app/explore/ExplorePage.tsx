@@ -10,6 +10,24 @@ import { apiUrl } from '@/lib/api';
 import RentalDateModal from './RentalDateModal';
 import SiteFooter from '../components/SiteFooter';
 import SiteHeader from '../components/SiteHeader';
+import {
+    audienceMap,
+    categoryOptions,
+    colorOptions,
+    colorsMap,
+    conditionOptions,
+    dbConditionVals,
+    genderOptions,
+    getUIAudience,
+    getUIColors,
+    getUICondition,
+    getUIType,
+    type MarketplacePost,
+    type Product,
+    sizeOptions,
+    typeOptions,
+    typesMap,
+} from './marketplace';
 
 /* ============================================
    BRAND COLORS
@@ -17,32 +35,6 @@ import SiteHeader from '../components/SiteHeader';
 const brandNavy = '#284472';
 const brandLightPink = "#fdf5f3";
 const brandBrown = "#675a5e";
-
-/* -------------------------------------------
-   TYPES
-------------------------------------------- */
-interface Lister {
-    display   : string;   // “Nancy L.”
-    username  : string;   // “nancy-l”   (used in /profile/{username})
-    avatarUrl : string;
-}
-
-interface Product {
-    id        : number;
-    title     : string;
-    price     : number;
-    forSale   : boolean;
-    forRent   : boolean;
-    sold?      : boolean;
-    type      : string[]; //'Tops'|'Bottoms'|'Outerwear'|'Dresses'|'Shoes'|'Accessories';
-    audience  : string[]; //"Men's" |"Women's"|"Kid's";
-    colors    : string[];
-    sizes     : string[];
-    condition : string;
-    description?: string;
-    images    : string[];       
-    lister    : Lister;           
-}
 
 /* helper to create avatar url */
 const avatar = (name: string) =>
@@ -205,10 +197,17 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) 
     const [rentalModalOpen, setRentalModalOpen] = useState(false);
     const [feedback, setFeedback] = useState('');
     const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+    const dialogRef = useRef<HTMLElement | null>(null);
+    const quickViewTriggerRef = useRef<HTMLButtonElement | null>(null);
 
     useEffect(() => {
         setFav(initialFav);
     }, [initialFav]);
+
+    const closeQuickView = React.useCallback(() => {
+        setOpen(false);
+        window.requestAnimationFrame(() => quickViewTriggerRef.current?.focus());
+    }, []);
 
     const addToCart = async (
         intent: 'purchase' | 'rental',
@@ -276,17 +275,37 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) 
     useEffect(() => {
         if (!open) return;
         const previousOverflow = document.body.style.overflow;
-        const closeOnEscape = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') setOpen(false);
+        const handleDialogKeys = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                closeQuickView();
+                return;
+            }
+            if (event.key !== 'Tab' || !dialogRef.current) return;
+
+            const focusable = Array.from(
+                dialogRef.current.querySelectorAll<HTMLElement>(
+                    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+                ),
+            );
+            if (focusable.length === 0) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
         };
         document.body.style.overflow = 'hidden';
-        document.addEventListener('keydown', closeOnEscape);
+        document.addEventListener('keydown', handleDialogKeys);
         closeButtonRef.current?.focus();
         return () => {
             document.body.style.overflow = previousOverflow;
-            document.removeEventListener('keydown', closeOnEscape);
+            document.removeEventListener('keydown', handleDialogKeys);
         };
-    }, [open]);
+    }, [closeQuickView, open]);
 
     const imgs      = product.images ?? [];
     const imgCount  = imgs.length;
@@ -363,7 +382,10 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) 
                     )}
                     <button
                         className="marketplace-card__quick-view"
-                        onClick={() => setOpen(true)}
+                        onClick={(event) => {
+                            quickViewTriggerRef.current = event.currentTarget;
+                            setOpen(true);
+                        }}
                         type="button"
                     >
                         Quick view <span aria-hidden="true">↗</span>
@@ -372,7 +394,14 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) 
             ) : (
                 <div className="marketplace-card__media">
                     <div className="marketplace-card__placeholder" />
-                    <button className="marketplace-card__quick-view" onClick={() => setOpen(true)} type="button">
+                    <button
+                        className="marketplace-card__quick-view"
+                        onClick={(event) => {
+                            quickViewTriggerRef.current = event.currentTarget;
+                            setOpen(true);
+                        }}
+                        type="button"
+                    >
                         Quick view <span aria-hidden="true">↗</span>
                     </button>
                 </div>
@@ -419,19 +448,20 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) 
                 <div
                     className="quick-view"
                     onMouseDown={(event) => {
-                        if (event.currentTarget === event.target) setOpen(false);
+                        if (event.currentTarget === event.target) closeQuickView();
                     }}
                 >
                     <section
                         aria-labelledby={`quick-view-title-${product.id}`}
                         aria-modal="true"
                         className="quick-view__dialog"
+                        ref={dialogRef}
                         role="dialog"
                     >
                         <button
                             aria-label="Close quick view"
                             className="quick-view__close"
-                            onClick={() => setOpen(false)}
+                            onClick={closeQuickView}
                             ref={closeButtonRef}
                             type="button"
                         >
@@ -530,67 +560,6 @@ const Footer = SiteFooter;
    EXPLORE PAGE
 ============================================ */
 
-    /* filter options */
-    const typeOptions    = ['Tops','Bottoms','Outerwear','Dresses','Shoes','Accessories'];
-    const genderOptions  = ["Men's","Women's","Kids"];
-    const categoryOptions= ['For Rent','For Sale'];
-    const conditionOpts  = ['Brand New','Used – Like New','Used – Good','Used – Fair'];
-    const sizeOptions    = ['XX-Small','X-Small','Small','Medium','Large','X-Large','XX-Large','3X-Large','4X-Large'];
-    const colorOptions   = ['Black','White','Red','Blue','Green','Pink'];
-
-    // map UI labels to db values
-    const audienceMap = [
-        { label: genderOptions[1], db_val: 1 }, // Women's
-        { label: genderOptions[0], db_val: 2 }, // Men's
-        { label: genderOptions[2], db_val: 3 } // Kids
-    ];
-
-    const typesMap = [
-        { label: typeOptions[0], db_val: 4 },
-        { label: typeOptions[1], db_val: 5 },
-        { label: typeOptions[2], db_val: 6 },
-        { label: typeOptions[3], db_val: 7 },
-        { label: typeOptions[4], db_val: 8 },
-        { label: typeOptions[5], db_val: 9 }
-    ];
-
-    const colorsMap = [
-        { label: colorOptions[0], db_val: 10 },
-        { label: colorOptions[1], db_val: 11 },
-        { label: colorOptions[2], db_val: 12 },
-        { label: colorOptions[3], db_val: 13 },
-        { label: colorOptions[4], db_val: 14 },
-        { label: colorOptions[5], db_val: 15 }
-    ];
-
-    const dbConditionVals = [
-        { label: conditionOpts[0], db_val: "new"},
-        { label: conditionOpts[1], db_val: "excellent"},
-        { label: conditionOpts[2], db_val: "good"},
-        { label: conditionOpts[3], db_val: "worn"},
-    ];
-
-    // returns one string for type ("Women's", "Men's", or "Kids")
-    function getUIAudience(dbVals: any) {
-        return audienceMap.filter(item => dbVals.includes(item.db_val)).map(item => item.label);
-    }
-
-    // returns one string for type (Tops, Bottoms, Outerwear, ...)
-    function getUIType(dbVals: any) {
-        return typesMap.filter(item => dbVals.includes(item.db_val)).map(item => item.label);
-    }
-
-    // returns array of colors as strings
-    function getUIColors(dbVals: any) {
-        return colorsMap.filter(item => dbVals.includes(item.db_val)).map(item => item.label);
-    }
-
-    // returns one string for condition
-    function getUICondition(condition: string) {
-        var matchedCondition = dbConditionVals.find(item => item.db_val == condition);
-        return matchedCondition?.label;
-    }
-
 const ExplorePage: React.FC = () => {
     /* state */
     const [explorePageItems, setExplorePageItems] = useState<Product[]>([]);
@@ -622,7 +591,7 @@ const ExplorePage: React.FC = () => {
             .then(res => res.json())
             .then(data => {
                 if (Array.isArray(data.wishlist)) {
-                    setWishlistIds(data.wishlist.map((item: any) => item.post_id));
+                    setWishlistIds(data.wishlist.map((item: { post_id: number }) => item.post_id));
                 } else {
                     setWishlistIds([]);
                 }
@@ -645,20 +614,20 @@ const ExplorePage: React.FC = () => {
                 }
 
 
-                const transformed: Product[] = data.posts.map((post: any) => ({
+                const transformed: Product[] = data.posts.map((post: MarketplacePost) => ({
                     id: post.post_id,
                     title: post.title,
                     price: post.price ?? 20, // Default price if not provided
                     forSale: post.sflag === 1,
                     forRent: post.bflag === 1,
                     sold: false,
-                    type: getUIType(post.categories), //post.type ?? '',
-                    audience: getUIAudience(post.categories), //post.audience ?? '',
-                    colors: getUIColors(post.categories), //post.colors ?? [],
-                    sizes: post.size ? [post.size] : [], // Wrap size in an array
-                    condition: getUICondition(post.item_condition), //post.item_condition,
+                    type: getUIType(post.categories),
+                    audience: getUIAudience(post.categories),
+                    colors: getUIColors(post.categories),
+                    sizes: post.size ? [post.size] : [],
+                    condition: getUICondition(post.item_condition),
                     description: post.description,
-                    images: post.images, // Use the images array directly
+                    images: post.images || [],
                     lister: {
                         display: post.lister?.display ?? 'Unknown',
                         username: post.lister?.username ?? 'unknown-user',
@@ -670,7 +639,7 @@ const ExplorePage: React.FC = () => {
                 setExplorePageItems(transformed);
             })
             .catch((error) => {
-                console.log('Error fetching explore page items: ', error);
+                console.error('Error fetching explore page items: ', error);
                 fetch('/explore-fallback.json')
                     .then((response) => response.json())
                     .then((fallbackItems: Product[]) => setExplorePageItems(fallbackItems))
@@ -812,7 +781,7 @@ const ExplorePage: React.FC = () => {
                     {/* condition */}
                     <div className="filter-group">
                         <h3>Condition</h3>
-                        {conditionOpts.map(c=>(
+                        {conditionOptions.map(c=>(
                             <label key={c} className="flex items-center mb-1">
                                 <input type="checkbox" className="mr-2" checked={selConds.includes(c)}
                                        onChange={()=>toggle(c,selConds,setConds)}/> {c}

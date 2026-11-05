@@ -21,6 +21,7 @@ let availablePostId;
 let favoritePostId;
 let rentalPostId;
 let aliceListingId;
+let bobListingId;
 
 function run(sql, parameters = []) {
     return new Promise((resolve, reject) => {
@@ -74,6 +75,33 @@ test.before(async () => {
                    'good', 'Medium', 12, 0, 1, 'published', CURRENT_TIMESTAMP)`,
     );
     aliceListingId = aliceListing.lastID;
+    const bobListing = await run(
+        `INSERT INTO Post (
+            closet_id, owner_id, title, description, item_condition, size,
+            price, bflag, sflag, listing_status, updated_at
+         ) VALUES (1, 'bob@example.com', 'Bob listing', 'Test listing',
+                   'good', 'Medium', 18, 0, 1, 'published', CURRENT_TIMESTAMP)`,
+    );
+    bobListingId = bobListing.lastID;
+
+    const aliceSale = await run(
+        `INSERT INTO Transactions (email, status, purchased_date)
+         VALUES ('bob@example.com', 'purchased', CURRENT_TIMESTAMP)`,
+    );
+    const bobSale = await run(
+        `INSERT INTO Transactions (email, status, purchased_date)
+         VALUES ('alice@example.com', 'purchased', CURRENT_TIMESTAMP)`,
+    );
+    await run(
+        `INSERT INTO Transaction_Listing (transaction_id, post_id, intent, unit_price)
+         VALUES (?, ?, 'purchase', 12)`,
+        [aliceSale.lastID, aliceListingId],
+    );
+    await run(
+        `INSERT INTO Transaction_Listing (transaction_id, post_id, intent, unit_price)
+         VALUES (?, ?, 'purchase', 18)`,
+        [bobSale.lastID, bobListingId],
+    );
 
     const aliceTransaction = await get(
         `SELECT transaction_id FROM Transactions WHERE email = ? AND status = 'pending'`,
@@ -154,7 +182,12 @@ test.before(async () => {
     const testAuth = {
         requireUser: [
             (req, res, next) => {
-                req.currentUser = { email: req.headers['x-test-user'] };
+                const email = req.headers['x-test-user'];
+                if (!email) {
+                    res.status(401).json({ error: 'Authentication required' });
+                    return;
+                }
+                req.currentUser = { email };
                 next();
             },
         ],
@@ -258,6 +291,23 @@ test('favorites use the authenticated user instead of request-provided identity'
         body: JSON.stringify({ post_id: favoritePostId }),
     });
     assert.equal(removeResponse.status, 204);
+});
+
+test('seller history cannot be read without authentication', async () => {
+    const response = await fetch(`${baseUrl}/api/profile/seller-history`);
+    assert.equal(response.status, 401);
+});
+
+test('seller history ignores request-provided identity', async () => {
+    const response = await request(
+        '/api/profile/seller-history?email=bob@example.com',
+        'alice@example.com',
+    );
+    assert.equal(response.status, 200);
+
+    const body = await response.json();
+    assert.equal(body.orders.some((order) => order.post_id === aliceListingId), true);
+    assert.equal(body.orders.some((order) => order.post_id === bobListingId), false);
 });
 
 test('checkout completes only the current user cart and opens a fresh cart', async () => {

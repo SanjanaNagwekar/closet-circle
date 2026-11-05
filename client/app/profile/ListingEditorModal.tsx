@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 
@@ -83,6 +83,15 @@ export default function ListingEditorModal({
   const [listing, setListing] = useState<ListingEditorValues>(EMPTY_LISTING);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState('');
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const isSavingRef = useRef(isSaving);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    isSavingRef.current = isSaving;
+    onCloseRef.current = onClose;
+  }, [isSaving, onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -90,6 +99,47 @@ export default function ListingEditorModal({
     setErrors({});
     setSubmitError('');
   }, [initialListing, open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const previouslyFocused = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const previousOverflow = document.body.style.overflow;
+    const handleDialogKeys = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isSavingRef.current) {
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== 'Tab' || !dialogRef.current) return;
+
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleDialogKeys);
+    window.requestAnimationFrame(() => titleInputRef.current?.focus());
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', handleDialogKeys);
+      previouslyFocused?.focus();
+    };
+  }, [open]);
 
   const newImagePreviews = useMemo(
     () => listing.newImages.map((file) => URL.createObjectURL(file)),
@@ -157,11 +207,17 @@ export default function ListingEditorModal({
   const isEditing = Boolean(initialListing?.id);
 
   return createPortal(
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 px-4 py-8">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/50 px-4 py-8"
+      onMouseDown={(event) => {
+        if (event.currentTarget === event.target && !isSaving) onClose();
+      }}
+    >
       <div
         aria-labelledby="listing-editor-title"
         aria-modal="true"
         className="mx-auto grid w-full max-w-5xl gap-6 rounded-xl bg-white p-6 shadow-xl lg:grid-cols-[1fr_340px]"
+        ref={dialogRef}
         role="dialog"
       >
         <form className="space-y-5" onSubmit={(event) => event.preventDefault()}>
@@ -182,6 +238,7 @@ export default function ListingEditorModal({
               maxLength={50}
               onChange={(event) => update('title', event.target.value)}
               placeholder="Vintage denim jacket"
+              ref={titleInputRef}
               value={listing.title}
             />
             {errors.title && <span className="mt-1 block text-red-600">{errors.title}</span>}

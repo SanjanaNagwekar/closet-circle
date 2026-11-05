@@ -57,11 +57,10 @@ function NewUsersPage() {
 
     // redirect to profile page when user submits form
     if (response.ok) {
-      console.log('User saved:', result);
       sessionStorage.setItem('newuser_complete', 'true'); // prevent redirect back to here after completion
       router.push("/profile");
     } else {
-      console.log('Error:', result);
+      console.error('Could not create profile:', result);
     }
   };
 

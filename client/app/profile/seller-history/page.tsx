@@ -22,6 +22,17 @@ interface Product {
     rentalEndDate?: string;
 }
 
+interface SellerHistoryOrder {
+    post_id: number;
+    title: string;
+    price: number;
+    images?: string[];
+    purchased_date: string;
+    intent: 'purchase' | 'rental';
+    rental_start_date?: string;
+    rental_end_date?: string;
+}
+
 const SellerHistoryPage: React.FC = () => {
     const { user } = useUser();
 
@@ -36,18 +47,16 @@ const SellerHistoryPage: React.FC = () => {
     useEffect(() => {
         if (!user) return;
 
-        fetch(apiUrl(`/api/profile/seller-history?email=${user.email}`))
+        fetch(apiUrl('/api/profile/seller-history'))
             .then((response) => response.json())
             .then((data) => {
-                console.log('Fetched posts: ', data);
-
                 if (!Array.isArray(data.orders)) {
                     console.error("Invalid data format:", data);
                     setSoldOrders([]);
                     return;
                 }
 
-                const transformed: Product[] = data.orders.map((post: any) => ({
+                const transformed: Product[] = data.orders.map((post: SellerHistoryOrder) => ({
                     id: post.post_id,
                     title: post.title,
                     price: post.price ?? 20, // Default price if not provided
@@ -65,7 +74,7 @@ const SellerHistoryPage: React.FC = () => {
                 setBorrowedOrders(borrowedItems);
                 //setPurchasedOrders(transformed);
             })
-            .catch((error) => console.log('Error fetching cart items: ', error));
+            .catch((error) => console.error('Could not load seller history:', error));
     }, [user]);
 
     const items = tab === 'Sold' ? soldItems : borrowedItems;
@@ -78,7 +87,7 @@ const SellerHistoryPage: React.FC = () => {
 
     const totalProfit = soldItems.reduce((sum, item) => sum + item.price, 0).toFixed(2);
 
-    const renderItem = (item: any) => (
+    const renderItem = (item: Product) => (
         <div key={item.id} className="flex items-center gap-6 border p-6 rounded relative">
             <div className="flex gap-4">
                 {item.images?.length ? (

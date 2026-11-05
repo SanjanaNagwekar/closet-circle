@@ -6,6 +6,9 @@
 
 # runtime database files
 /data
+*.db
+*.db-shm
+*.db-wal
 
 # production
 /build

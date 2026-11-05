@@ -22,6 +22,17 @@ interface Product {
     rentalEndDate?: string;
 }
 
+interface OrderHistoryRecord {
+    post_id: number;
+    title: string;
+    price: number | null;
+    images: string[];
+    purchased_date: string;
+    intent: 'purchase' | 'rental';
+    rental_start_date?: string;
+    rental_end_date?: string;
+}
+
 const OrderHistoryPage: React.FC = () => {
     const { user } = useUser();
 
@@ -36,16 +47,15 @@ const OrderHistoryPage: React.FC = () => {
     /* Fetch all ordered items */
     useEffect(() => {
         if (!user) return;
-        fetch(apiUrl(`/api/profile/order-history/purchased?email=${user.email}`))
+        fetch(apiUrl('/api/profile/order-history/purchased'))
             .then((response) => response.json())
             .then((data) => {
-                console.log('Fetched posts: ', data);
                 if (!Array.isArray(data.orders)) {
                     console.error("Invalid data format:", data);
                     setPurchasedOrders([]);
                     return;
                 }
-                const transformed: Product[] = data.orders.map((post: any) => ({
+                const transformed: Product[] = data.orders.map((post: OrderHistoryRecord) => ({
                     id: post.post_id,
                     title: post.title,
                     price: post.price ?? 20, // Default price if not provided
@@ -62,7 +72,7 @@ const OrderHistoryPage: React.FC = () => {
                 setRequestedOrders(borrowedItems);
                 //setPurchasedOrders(transformed);
             })
-            .catch((error) => console.log('Error fetching cart items: ', error));
+            .catch((error) => console.error('Could not load order history:', error));
     }, [user]);
 
     const paginate = <T,>(items: T[], page: number) => {

@@ -50,6 +50,21 @@ function labelsFor(values: unknown, options: { label: string; dbValue: number }[
         .map((option) => option.label);
 }
 
+interface PublicProfilePost {
+    post_id: number;
+    title: string;
+    price: number | null;
+    sflag: number;
+    bflag: number;
+    images: string[];
+    categories: number[];
+    size: string;
+    item_condition: string;
+    description?: string;
+}
+
+type SortOption = 'Most Popular' | 'Price: Low to High' | 'Price: High to Low';
+
 export default function ProfilePageByUsername() {
     const { user } = useUser();
     const [followToggle, setToggled] = useState(true); // default button shows 'Follow'
@@ -60,22 +75,18 @@ export default function ProfilePageByUsername() {
     //const [email,     setEmail    ] = useState('');
     const [bio,       setBio      ] = useState('');
     const [items, setClosetItems] = useState<Product[]>([]);
-    const [unavailablePostIDs, setUnavailableArr] = useState<number[]>([]);
 
     // 1) grab the URL segment
     const params        = useParams();
     const rawParam      = Array.isArray(params.username) ? params.username[0] : params.username || '';
     const email = decodeURIComponent(rawParam);
-    console.log("username " + email);
 
     /* get profile info from db */
     useEffect(() => {
-        console.log("email: " + email);
         // Get specific user information from db - O.C.
         fetch(apiUrl(`/api/profile?email=${email}`))
         .then(response => response.json())
         .then(data => {
-                console.log("returned: " + data.users[0]); // 1 user should be returned (1 account per email)
                 setFirstName(data.users[0].first_name);
                 setLastName(data.users[0].last_name);
                 setBio(data.users[0].bio);
@@ -92,37 +103,18 @@ export default function ProfilePageByUsername() {
         rating:      4.5, // out of 5
     };         
 
-    /* fetch unavailable items */
-    useEffect(() => {
-        fetch(apiUrl(`/api/profile/seller-history?email=${email}`))
-                .then((response) => response.json())
-                .then((data) => {
-                    console.log('Fetched sold posts: ', data);
-        
-                    if (!Array.isArray(data.orders)) {
-                        console.error("Invalid data format:", data);
-                        return;
-                    }
-
-                    // IDs of unavailable items (to be marked as sold)
-                    setUnavailableArr(data.orders.map((item: { post_id: any; }) => item.post_id));
-                })
-                .catch((error) => console.log('Error fetching ordered items: ', error));
-    }, [email]);
-
     /* fetch user’s closet */
         useEffect(() => {
             fetch(apiUrl(`/api/profile/posts?ownerID=${email}`))
                 .then((r) => r.json())
                 .then((data) => {
-                    console.log(data);
-                    const transformed: Product[] = data.posts.map((p: any) => ({
+                    const transformed: Product[] = data.posts.map((p: PublicProfilePost) => ({
                         id        : p.post_id,
                         title     : p.title,
                         price     : p.price ?? 20,
                         forSale   : p.sflag === 1,
                         forRent   : p.bflag === 1,
-                        sold      : unavailablePostIDs.includes(p.post_id),
+                        sold      : false,
                         images    : p.images,
                         type      : labelsFor(p.categories, typeMap),
                         audience  : labelsFor(p.categories, audienceMap),
@@ -135,7 +127,7 @@ export default function ProfilePageByUsername() {
                     setClosetItems(transformed.length ? [...transformed] : []);
                 })
                 .catch(console.error);
-        }, [email, unavailablePostIDs]);
+        }, [email]);
     
     /* Check if this logged in user is following this profile */
     /* get this profile's followers, check if logged in user is included, set Unfollow if so */
@@ -144,7 +136,7 @@ export default function ProfilePageByUsername() {
         fetch(apiUrl(`/api/profile/followers?email=${email}`))
             .then((r) => r.json())
             .then((data) => {
-                const profileFollowers = data.followers.map((f: { email: any; }) => f.email);
+                const profileFollowers = data.followers.map((f: { email: string }) => f.email);
                 if (profileFollowers.includes(user.email)) {
                     setToggled(false); // false means button shows 'Unfollow'
                 } else {
@@ -176,11 +168,10 @@ export default function ProfilePageByUsername() {
 
         // redirect to profile page when user submits form
         if (response.ok) {
-            console.log('Friend saved:', result);
             // make button show 'Unfollow'
             setToggled(prev => !prev);
         } else {
-            console.log('Error:', result);
+            console.error('Could not follow this profile:', result);
         }
 
     } else {
@@ -195,7 +186,6 @@ export default function ProfilePageByUsername() {
 
             const result = await response.json();
             if (response.ok) {
-                console.log('Friend saved:', result);
                 // make button show 'Follow'
                 setToggled(prev => !prev);
             } else {
@@ -213,7 +203,7 @@ export default function ProfilePageByUsername() {
     const [selSizes,    setSizes]    = useState<string[]>([]);
     const [selColors,   setColors]   = useState<string[]>([]);
     const [priceRange,  setPriceRange] = useState<[number,number]>([0,50]);
-    const [sort,        setSort]     = useState<'Most Popular'|'Price: Low to High'|'Price: High to Low'>('Most Popular');
+    const [sort,        setSort]     = useState<SortOption>('Most Popular');
     const [page,        setPage]     = useState(1);
     const perPage                     = 9;
 
@@ -359,7 +349,7 @@ export default function ProfilePageByUsername() {
                     {/* sort */}
                     <div>
                         <h3 className="font-semibold mb-2">Sort by</h3>
-                        <select value={sort} onChange={e=>{setSort(e.target.value as any);setPage(1);}}
+                        <select value={sort} onChange={e=>{setSort(e.target.value as SortOption);setPage(1);}}
                                 className="w-full border p-2 text-black">
                             <option>Most Popular</option><option>Price: Low to High</option><option>Price: High to Low</option>
                         </select>
