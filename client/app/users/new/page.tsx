@@ -4,6 +4,7 @@ import { useUser } from '@auth0/nextjs-auth0/client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import Image from 'next/image';
 import { apiUrl } from '@/lib/api';
 
 const brandNavy = '#284472';
@@ -72,10 +73,14 @@ function NewUsersPage() {
         <div className="w-full max-w-lg bg-white rounded-2xl shadow-lg p-10 mx-4">
           {/* Logo inside the white box */}
           <div className="flex justify-center mb-8">
-            <img
+            <Image
                 src="https://cdn.builder.io/api/v1/image/assets/TEMP/cbcbc59fadb92cbfa94f7a46414d883263e97dc4"
                 alt="Closet Circle"
                 className="w-[200px] h-auto"
+                height={80}
+                priority
+                unoptimized
+                width={200}
             />
           </div>
 

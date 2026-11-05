@@ -258,6 +258,7 @@ Running the production build is the quickest way to catch TypeScript, Next.js, a
 
 Additional design and architecture documentation is available in the [`documentation`](documentation/) directory, including:
 
+- [Product case study](documentation/product_case_study.md)
 - Original project presentation
 - Block architecture
 - Layer architecture

@@ -1,8 +1,10 @@
 'use client';
 import React, { useState, useEffect, useRef, JSX } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { apiUrl } from '@/lib/api';
+import SiteFooter from './components/SiteFooter';
 
 const brandNavy = '#284472';
 const brandLightPink = '#fdf5f3';
@@ -248,10 +250,14 @@ const Header: React.FC = () => {
  ***************/
 const HeroSection: React.FC = () => (
     <section style={{ backgroundColor: brandLightPink }} className="flex flex-col items-start px-6 py-10 bg-opacity-50">
-        <img
+        <Image
             src="https://cdn.builder.io/api/v1/image/assets/TEMP/cbcbc59fadb92cbfa94f7a46414d883263e97dc4"
             alt="Hero"
             className="w-full max-w-5xl h-auto mb-10 self-center"
+            height={400}
+            priority
+            unoptimized
+            width={1000}
         />
         <div className="max-w-4xl md:ml-24 space-y-6">
             <h1
@@ -367,7 +373,14 @@ const ProductShowcase: React.FC = () => (
             },
         ].map(({ src, alt }, index) => (
             <div key={index} className="relative w-full h-64 md:h-80 overflow-hidden rounded-lg">
-                <img src={src} alt={alt} className="w-full h-full object-cover" />
+                <Image
+                    alt={alt}
+                    className="w-full h-full object-cover"
+                    fill
+                    sizes="(min-width: 768px) 33vw, 100vw"
+                    src={src}
+                    unoptimized
+                />
                 <div className="absolute bottom-3 left-3">
                     <h2 className="text-white text-lg md:text-xl font-semibold drop-shadow-md">{alt}</h2>
                 </div>
@@ -379,23 +392,38 @@ const ProductShowcase: React.FC = () => (
 /***************
  * Trending Items
  ***************/
-const ProductCard: React.FC<{ image: string; title: string; buyPrice: string }> = ({ image, title, buyPrice }) => (
+const ProductCard: React.FC<{ image?: string; title: string; buyPrice: string }> = ({ image, title, buyPrice }) => (
     <article className="flex flex-col">
-        <img src={image} alt={title} className="w-full h-60 object-cover rounded-xl mb-4" />
+        {image ? (
+            <Image
+                alt={title}
+                className="w-full h-60 object-cover rounded-xl mb-4"
+                height={240}
+                src={image}
+                unoptimized
+                width={480}
+            />
+        ) : (
+            <div className="mb-4 flex h-60 w-full items-center justify-center rounded-xl bg-gray-200 text-sm text-gray-500">
+                No image
+            </div>
+        )}
         <h3 className="mb-3 text-lg md:text-xl font-medium text-black">{title}</h3>
         <div className="flex gap-2.5">
-            <button
+            <Link
+                href="/explore"
                 style={{ backgroundColor: brandBrown }}
                 className="px-4 py-2 text-lg md:text-lg font-semibold tracking-wide text-white rounded"
             >
                 Buy for {buyPrice}
-            </button>
-            <button
+            </Link>
+            <Link
+                href="/explore"
                 style={{ color: brandBrown }}
                 className="px-4 py-2 text-lg md:text-lg font-semibold tracking-wide border-2 border-zinc-600 text-zinc-600 rounded"
             >
                 Rent
-            </button>
+            </Link>
         </div>
     </article>
 );
@@ -408,7 +436,7 @@ const TrendingItems: React.FC<{ products: Product[] }> = ({ products }) => {
                 {products.map((product) => (
                     <ProductCard
                     key={product.id}
-                    image={product.images?.[0] ?? '/placeholder.jpg'}
+                    image={product.images?.[0]}
                     title={product.title}
                     buyPrice={`$${product.price}`}
                 />
@@ -446,82 +474,6 @@ const PurposeSection: React.FC = () => (
 /***************
  * Footer
  ***************/
-const FooterColumn: React.FC<{ title: string; links: string[] }> = ({ title, links }) => (
-    <div className="flex-1 min-w-[120px]">
-        <h3 className="mb-4 text-xs tracking-normal leading-4 text-white uppercase">{title}</h3>
-        <ul className="flex flex-col gap-1 text-xs md:text-sm leading-5 text-neutral-400">
-            {links.map((link, index) => (
-                <li key={index}>
-                    <a href="#" className="hover:text-white transition-colors">
-                        {link}
-                    </a>
-                </li>
-            ))}
-        </ul>
-    </div>
-);
-
-const NewsletterForm: React.FC = () => {
-    const [email, setEmail] = useState('');
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        console.log('Subscribing email:', email);
-        setEmail('');
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-                <div className="flex px-3.5 py-2 border border-neutral-300">
-                    <input
-                        type="email"
-                        placeholder="Enter your email address"
-                        className="flex-1 text-sm leading-5 text-gray-200 bg-transparent"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                    />
-                </div>
-                <p className="text-xs md:text-sm leading-5 text-neutral-400">
-                    By signing up, you agree to our{' '}
-                    <a href="#" className="underline">
-                        Privacy Policy
-                    </a>{' '}
-                    and{' '}
-                    <a href="#" className="underline">
-                        Terms of Service
-                    </a>
-                    .
-                </p>
-            </div>
-            <button
-                style={{ backgroundColor: brandLightPink, color: brandNavy }}
-                type="submit"
-                className="px-4 py-2 text-sm md:text-base leading-5 w-fit rounded"
-            >
-                Subscribe
-            </button>
-        </form>
-    );
-};
-
-const Footer: React.FC = () => (
-    <footer style={{ backgroundColor: brandNavy }} className="px-0 pt-16 pb-10 border-t border-opacity-10 border-white">
-        <div className="flex flex-wrap justify-between px-6 md:px-10 gap-10">
-            <div className="flex flex-wrap gap-6">
-                <FooterColumn title="CONTACT US" links={['+1 (844) 326-6000', 'Email Us', 'Mon-Fri 9am-3pm PT']} />
-                <FooterColumn title="CUSTOMERS" links={['Start a Return', 'Return Policy', 'FAQ']} />
-                <FooterColumn title="COMPANY" links={['About Us', 'Sustainability', 'Careers']} />
-            </div>
-            <div className="w-full md:w-[420px] px-4 md:px-6">
-                <h3 className="mb-4 text-sm md:text-base leading-6 text-white">Get the latest news from us</h3>
-                <NewsletterForm />
-            </div>
-        </div>
-        <div className="mt-16 px-6 md:px-10 text-xs md:text-sm leading-5 text-neutral-600">©CEIN</div>
-    </footer>
-);
-
 /***************
  * Page Export
  ***************/
@@ -586,7 +538,7 @@ export default function Home() {
             <ProductShowcase />
             <TrendingItems products={featuredItems} />
             <PurposeSection />
-            <Footer />
+            <SiteFooter />
         </main>
     );
 }

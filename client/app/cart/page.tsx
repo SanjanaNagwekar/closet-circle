@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useUser, withPageAuthRequired } from '@auth0/nextjs-auth0/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { apiUrl } from '@/lib/api';
 
 /* ============================================
@@ -69,10 +70,14 @@ const Header: React.FC = () => {
             {/* centre logo */}
             <div className="flex-grow flex justify-center">
                 <Link href="/">
-                    <img
+                    <Image
                         src="https://cdn.builder.io/api/v1/image/assets/TEMP/cbcbc59fadb92cbfa94f7a46414d883263e97dc4"
                         alt="Closet Circle"
                         className="w-[200px] h-auto"
+                        height={80}
+                        priority
+                        unoptimized
+                        width={200}
                     />
                 </Link>
             </div>
@@ -287,10 +292,13 @@ const CartPage: React.FC = () => {
                                     {/* display first image only*/}
                                     <div className="flex gap-2" style={{ color: brandBrown }}>
                                         {item.images && item.images.length > 0 ? (
-                                            <img
+                                            <Image
                                                 src={item.images[0]}
                                                 alt={`${item.title} - Image 1`}
                                                 className="w-20 h-20 object-cover rounded"
+                                                height={80}
+                                                unoptimized
+                                                width={80}
                                             />
                                         ) : (
                                             <div className="w-20 h-20 bg-gray-200 flex items-center justify-center rounded">

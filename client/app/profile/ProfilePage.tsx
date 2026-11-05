@@ -5,11 +5,13 @@ import { createPortal } from 'react-dom';
 import { useUser, withPageAuthRequired } from '@auth0/nextjs-auth0/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { apiUrl } from '@/lib/api';
 import ListingEditorModal, {
     ListingEditorValues,
     ListingStatus,
 } from './ListingEditorModal';
+import SiteFooter from '../components/SiteFooter';
 
 /* ============================================
    BRAND COLORS
@@ -118,10 +120,14 @@ const Header: React.FC = () => {
             {/* centre logo */}
             <div className="flex-grow flex justify-center">
                 <Link href="/">
-                    <img
+                    <Image
                         src="https://cdn.builder.io/api/v1/image/assets/TEMP/cbcbc59fadb92cbfa94f7a46414d883263e97dc4"
                         alt="Closet Circle"
                         className="w-[200px] h-auto"
+                        height={80}
+                        priority
+                        unoptimized
+                        width={200}
                     />
                 </Link>
             </div>
@@ -349,10 +355,13 @@ const ClosetCard: React.FC<{
             {/* image / carousel */}
             {imgCount ? (
                 <div className="relative">
-                    <img
+                    <Image
                         src={imgs[idx]}
                         alt={product.title}
                         className="aspect-square w-full object-cover"
+                        height={600}
+                        unoptimized
+                        width={600}
                     />
                     {imgCount > 1 && (
                         <>
@@ -490,102 +499,6 @@ const ClosetCard: React.FC<{
         </div>
     );
 };
-
-/* ============================================
-   FOOTER
-============================================ */
-const FooterColumn: React.FC<{ title: string; links: string[] }> = ({
-                                                                        title,
-                                                                        links,
-                                                                    }) => (
-    <div className="flex-1">
-        <h3 className="mb-5 text-xs tracking-normal leading-4 text-white uppercase">
-            {title}
-        </h3>
-        <ul className="flex flex-col gap-1 text-sm leading-5 text-neutral-400">
-            {links.map((l) => (
-                <li key={l}>
-                    <a href="#" className="hover:text-white transition-colors">
-                        {l}
-                    </a>
-                </li>
-            ))}
-        </ul>
-    </div>
-);
-
-const NewsletterForm: React.FC = () => {
-    const [email, setEmail] = useState('');
-    const submit = (e: React.FormEvent) => {
-        e.preventDefault();
-        setEmail('');
-    };
-    return (
-        <form onSubmit={submit} className="flex flex-col gap-5">
-            <div className="flex flex-col gap-1.5">
-                <div className="flex px-3.5 py-3 border border-neutral-300">
-                    <input
-                        type="email"
-                        placeholder="Enter your email address"
-                        className="flex-1 text-sm leading-5 text-black bg-transparent"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                    />
-                </div>
-                <p className="text-sm leading-5 text-neutral-400">
-                    By signing up, you agree to our{' '}
-                    <a href="#" className="underline">
-                        Privacy Policy
-                    </a>{' '}
-                    and{' '}
-                    <a href="#" className="underline">
-                        Terms of Service
-                    </a>
-                    .
-                </p>
-            </div>
-            <button
-                type="submit"
-                className="px-5 py-3 text-base leading-5 bg-white w-fit"
-                style={{ backgroundColor: brandLightPink, color: brandNavy }}
-            >
-                Subscribe
-            </button>
-        </form>
-    );
-};
-
-const Footer: React.FC = () => (
-    <footer
-        style={{ backgroundColor: brandNavy }}
-        className="px-0 pt-20 pb-11 border border-orange-950"
-    >
-        <div className="flex justify-between px-10 max-md:flex-col max-md:gap-10">
-            <div className="flex gap-6 max-md:flex-col">
-                <FooterColumn
-                    title="CONTACT US"
-                    links={['+1 (844) 326-6000', 'Email Us', 'Mon-Fri 9am-3pm PT']}
-                />
-                <FooterColumn
-                    title="CUSTOMERS"
-                    links={['Start a Return', 'Return Policy', 'FAQ']}
-                />
-                <FooterColumn
-                    title="COMPANY"
-                    links={['About Us', 'Sustainability', 'Careers']}
-                />
-            </div>
-            <div className="px-6 w-[491px] max-md:w-full">
-                <h3 className="mb-6 text-base leading-6 text-white">
-                    Get the latest news from us
-                </h3>
-                <NewsletterForm />
-            </div>
-        </div>
-        <div className="px-10 mt-20 text-sm leading-5 text-neutral-600">©CEIN</div>
-    </footer>
-);
 
 /* ============================================
    PROFILE PAGE
@@ -1218,7 +1131,7 @@ const ProfilePage: React.FC = () => {
                 </div>
             </div>
 
-            <Footer />
+            <SiteFooter />
         </div>
     );
 };

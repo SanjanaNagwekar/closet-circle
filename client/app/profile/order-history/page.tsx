@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { Header, Footer } from '../../explore/ExplorePage';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { apiUrl } from '@/lib/api';
@@ -80,11 +81,14 @@ const OrderHistoryPage: React.FC = () => {
             <div className="flex gap-4">
                 {item.images.length > 0 ? (
                     item.images.map((img, i) => (
-                        <img
+                        <Image
                             key={i}
                             src={img}
                             alt={`${item.title} - Image ${i + 1}`}
                             className="w-32 h-32 object-cover rounded"
+                            height={128}
+                            unoptimized
+                            width={128}
                         />
                     ))
                 ) : (

@@ -2,10 +2,12 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { apiUrl } from '@/lib/api';
 import RentalDateModal from './RentalDateModal';
+import SiteFooter from '../components/SiteFooter';
 
 /* ============================================
    BRAND COLORS
@@ -72,8 +74,15 @@ const Header: React.FC = () => {
             {/* centre logo */}
             <div className="flex-grow flex justify-center">
                 <Link href="/">
-                    <img src="https://cdn.builder.io/api/v1/image/assets/TEMP/cbcbc59fadb92cbfa94f7a46414d883263e97dc4"
-                         alt="Logo" className="w-[200px] h-auto"/>
+                    <Image
+                        alt="Closet Circle"
+                        className="w-[200px] h-auto"
+                        height={80}
+                        priority
+                        src="https://cdn.builder.io/api/v1/image/assets/TEMP/cbcbc59fadb92cbfa94f7a46414d883263e97dc4"
+                        unoptimized
+                        width={200}
+                    />
                 </Link>
             </div>
 
@@ -282,8 +291,14 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) 
             <Link href={`/profile/${product.lister.username}`}
                   className="absolute top-2 left-2 z-[60] flex items-center gap-1
                        bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-full">
-                <img src={product.lister.avatarUrl} alt={product.lister.display}
-                     className="w-5 h-5 rounded-full"/>
+                <Image
+                    alt={product.lister.display}
+                    className="w-5 h-5 rounded-full"
+                    height={20}
+                    src={product.lister.avatarUrl}
+                    unoptimized
+                    width={20}
+                />
                 <span className="text-xs font-medium text-black">{product.lister.display}</span>
             </Link>
 
@@ -306,8 +321,14 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) 
             {/* image section */}
             {imgCount ? (
                 <div className="relative">
-                    <img src={imgs[i]} alt={product.title}
-                         className="aspect-square w-full object-cover" />
+                    <Image
+                        alt={product.title}
+                        className="aspect-square w-full object-cover"
+                        height={600}
+                        src={imgs[i]}
+                        unoptimized
+                        width={600}
+                    />
                     {imgCount > 1 && (
                         <>
                             <button onClick={prevImg}
@@ -401,69 +422,7 @@ const ProductCard: React.FC<ProductCardProps> = ({product, initialFav = false}) 
     );
 };
 
-/* ============================================
-   FOOTER
-============================================ */
-const FooterColumn: React.FC<{ title: string; links: string[] }> = ({ title, links }) => (
-    <div className="flex-1">
-        <h3 className="mb-5 text-xs tracking-normal leading-4 text-white uppercase">{title}</h3>
-        <ul className="flex flex-col gap-1 text-sm leading-5 text-neutral-400">
-            {links.map((link) => (
-                <li key={link}>
-                    <a href="#" className="hover:text-white transition-colors">{link}</a>
-                </li>
-            ))}
-        </ul>
-    </div>
-);
-
-const NewsletterForm: React.FC = () => {
-    const [email, setEmail] = useState('');
-    const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); setEmail(''); };
-    return (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            <div className="flex flex-col gap-1.5">
-                <div className="flex px-3.5 py-3 border border-neutral-300">
-                    <input
-                        type="email"
-                        placeholder="Enter your email address"
-                        className="flex-1 text-sm leading-5 text-black bg-transparent"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                    />
-                </div>
-                <p className="text-sm leading-5 text-neutral-400">
-                    By signing up, you agree to our{' '}
-                    <a href="#" className="underline">Privacy Policy</a> and{' '}
-                    <a href="#" className="underline">Terms of Service</a>.
-                </p>
-            </div>
-            <button type="submit" className="px-5 py-3 text-base leading-5 bg-white w-fit"
-                    style={{ backgroundColor: brandLightPink, color: brandNavy }}>
-                Subscribe
-            </button>
-        </form>
-    );
-};
-
-const Footer: React.FC = () => (
-    <footer style={{ backgroundColor: brandNavy }}
-            className="px-0 pt-20 pb-11 border border-orange-950">
-        <div className="flex justify-between px-10 max-md:flex-col max-md:gap-10">
-            <div className="flex gap-6 max-md:flex-col">
-                <FooterColumn title="CONTACT US" links={['+1 (844) 326-6000', 'Email Us', 'Mon-Fri 9am-3pm PT']} />
-                <FooterColumn title="CUSTOMERS" links={['Start a Return', 'Return Policy', 'FAQ']} />
-                <FooterColumn title="COMPANY"   links={['About Us', 'Sustainability', 'Careers']} />
-            </div>
-            <div className="px-6 w-[491px] max-md:w-full">
-                <h3 className="mb-6 text-base leading-6 text-white">Get the latest news from us</h3>
-                <NewsletterForm />
-            </div>
-        </div>
-        <div className="px-10 mt-20 text-sm leading-5 text-neutral-600">©CEIN</div>
-    </footer>
-);
+const Footer = SiteFooter;
 
 /* ============================================
    EXPLORE PAGE

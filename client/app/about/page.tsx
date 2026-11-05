@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { Header, Footer } from '../explore/ExplorePage';
 
 /* ============================================
@@ -56,10 +57,13 @@ export default function AboutPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-12">
                         {team.map(({ name, role, photo }) => (
                             <div key={name} className="text-center">
-                                <img
+                                <Image
                                     src={photo}
                                     alt={name}
                                     className="w-32 h-32 mx-auto rounded-full mb-4 object-cover"
+                                    height={128}
+                                    unoptimized
+                                    width={128}
                                 />
                                 <h3 style={{ color: brandBrown }} className="text-xl font-medium">
                                     {name}

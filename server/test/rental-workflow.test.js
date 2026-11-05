@@ -151,6 +151,19 @@ test('only the seller can approve a pending request', async () => {
     assert.equal((await sellerResponse.json()).rental.status, 'approved');
 });
 
+test('a buyer cannot cancel a rental after seller approval', async () => {
+    const response = await request(
+        `/api/profile/rentals/${renterOneRequestId}/status`,
+        'renter-one@example.com',
+        {
+            method: 'PATCH',
+            body: JSON.stringify({ status: 'cancelled' }),
+        },
+    );
+    assert.equal(response.status, 409);
+    assert.match((await response.json()).error, /pending/i);
+});
+
 test('overlapping requests cannot both be approved', async () => {
     const response = await request(
         `/api/profile/rentals/${renterTwoRequestId}/status`,

@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useUser, withPageAuthRequired } from '@auth0/nextjs-auth0/client';
 import { useParams }   from 'next/navigation';
+import Image from 'next/image';
 import {
     Header,
     Footer,
@@ -261,10 +262,13 @@ export default function ProfilePageByUsername() {
                 <div className="flex items-center justify-center space-x-12">
                 {/* avatar + name */}
                     <div className="flex items-center">
-                        <img
+                        <Image
                             src={userInfo.profile_url}
                             alt="avatar"
                             className="w-24 h-24 rounded-full mr-6 border-4 border-white shadow-lg"
+                            height={96}
+                            unoptimized
+                            width={96}
                         />
                         <div>
                             <h2 className="text-3xl font-semibold text-gray-800">
